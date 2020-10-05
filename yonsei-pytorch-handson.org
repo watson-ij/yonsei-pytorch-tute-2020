@@ -51,34 +51,24 @@
 }
 #+end_export
 
-* Intro to Keras
-** Slides
-
-- Slides available from (this will redirect to my github repo.):
-
-_[[https://git.io/knu-slides-2019]]_
-
-- Other Resources:
-  - Keras documentation: _[[http://keras.io/]]_
-  - Tensorflow's guide to Keras: _[[https://www.tensorflow.org/guide/keras]]_
-  - Another tutorial presentation:
-    _[[https://uwaterloo.ca/data-science/sites/ca.data-science/files/uploads/files/keras_tutorial.pdf]]_
+* Pytorch Hands-on
 
 ** Goals
 
 - If you're already a deep learning master, not the talk for you!
 - Get up and running quickly with Deep Learning
   - In particular, the goal is to build neural networks you can take home today!
-- Therefore, use /Keras/ to get up and running quickly
+- Therefore, use /PyTorch/ to get up and running quickly
 - Outline of the session:
-  - Basic Usage of Keras (Iris)
-  - Convolutional Neural Net in Keras (MNIST)
+  - Basic Usage of PyTorch (Iris)
+  - Convolutional Neural Net in PyTorch (MNIST)
   - GANs (using MNIST)
 - For this lecture, I recommend using /google colaboratory/
   - Machine learning education and research tool setup by google, all
     the packages are installed, just need a google account to sign in
 
 https://colab.research.google.com
+
 
 ** Dependencies
 
@@ -95,13 +85,18 @@ lines):
 # Optional, setup a separate virtualenv to keep everything clean
 virtualenv ENV
 source ENV/bin/activate
-# Download dependencies, tensorflow will be the CPU version
-pip install matplotlib tensorflow seaborn scikit-learn h5py jupyter
+# Download dependencies
+pip install matplotlib seaborn scikit-learn h5py jupyter
+# Download the CPU version of pytorch
+pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 # Then you could start a notebook
 jupyter notebook
 #+END_SRC
 
-For a GPU tensorflow, usually best to build yourself (out of scope)
+For a GPU-capable version of pytorch (CUDA, which means you need an
+nVidia card), but check
+
+https://pytorch.org/get-started/locally/
 
 - Now, let's setup a new workspace
 

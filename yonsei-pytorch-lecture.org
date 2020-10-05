@@ -17,6 +17,7 @@
 #+BEAMER_HEADER: \newcommand*{\LargerCdot}{\raisebox{-0.7ex}{\scalebox{2.5}{$\cdot$}}} 
 #+BEAMDER_HEADER: \setbeamertemplate{items}{$\bullet$} % or \bullet, replaces ugly png
 #+BEAMER_HEADER: \colorlet{DarkIanColor}{IanColor!80!black} \setbeamercolor{alerted text}{fg=DarkIanColor} \setbeamerfont{alerted text}{series=\bfseries}
+#+BEAMER_HEADER: \definecolor{MyGreen}{rgb}{0.2, 0.8, 0.2}
 #+LATEX_HEADER: \usepackage{xspace}
 #+LATEX: \setbeamertemplate{navigation symbols}{} % Turn off navigation
 #+LATEX: \newcommand{\backupbegin}{\newcounter{framenumberappendix} \setcounter{framenumberappendix}{\value{framenumber}}}
@@ -51,236 +52,103 @@
 }
 #+end_export
 
-* Intro to Keras
+* Intro to Deep Learning with Pytorch
 ** Slides
 
 - Slides available from (this will redirect to my github repo.):
 
-_[[https://git.io/knu-slides-2019]]_
+_[[https://git.io/yonsei-slides-2020]]_
 
 - Other Resources:
-  - Keras documentation: _[[http://keras.io/]]_
-  - Tensorflow's guide to Keras: _[[https://www.tensorflow.org/guide/keras]]_
-  - Another tutorial presentation:
-    _[[https://uwaterloo.ca/data-science/sites/ca.data-science/files/uploads/files/keras_tutorial.pdf]]_
+  - Pytorch documentation: _[[https://pytorch.org/]]_
+  - List of resources from tech republic:
+    https://www.techrepublic.com/article/how-to-learn-pytorch-a-resources-guide-for-developers/
+- Also, an *old* version of this talk using keras (tensorflow):
+  _[[https://git.io/knu-slides-2019]]_
 
 ** Goals
 
 - If you're already a deep learning master, not the talk for you!
 - Get up and running quickly with Deep Learning
   - In particular, the goal is to build neural networks you can take home today!
-- Therefore, use /Keras/ to get up and running quickly
+- Therefore, we'll use /PyTorch/ to get up and running quickly
 - Outline of the session:
-  - Basic Usage of Keras (Iris)
-  - Convolutional Neural Net in Keras (MNIST)
-  - GANs (using MNIST)
+  - Lecture introducing some of the theory
+  - Hands-on covering a few projects:
+    - Basic Usage of PyTorch (Iris)
+    - Convolutional Neural Net in PyTorch (MNIST)
+    - GANs (using MNIST)
+  - I'll try to cover as much as possible of machine learning and deep learning, this is too much!
 - For this lecture, I recommend using /google colaboratory/
   - Machine learning education and research tool setup by google, all
     the packages are installed, just need a google account to sign in
+    https://colab.research.google.com
+- If you don't have a google account, please sign up during this
+  lecture (or, check the hands-on to setup your computer if you're
+  comfortable with python, pip, etc.)
 
-https://colab.research.google.com
+* Introduction: Machine Learning, Deep Learning
 
-** Dependencies
 
-/However,/
+** Introduction - Machine Learning
 
-If you want to follow along with a local setup:
+- *Machine learning* refers to sets of algorithms (techniques) that
+  can "learn" from experience
+- Given inputs and expected output can automatically learn to
+  associate patterns in the input to the output and generalize on
+  unseen inputs.
+- As opposed to traditional algorithms which are explicitly programmed
+  to always act in specific ways
+- Example: Does this signal in my detector correspond to a photon or a
+  hadron? Feed the algorithm thousands of (simulated) photons &
+  hadrons, and it will learn to distinguish them
+  - More specifically, we will build a parameterized model which gives
+    a "probability" for an input datapoint to be photon or hadron, and
+    the algorithms changes the parameters to better describe the
+    photons or hadron examples you feed it
 
-With python and pip installed, you can pull the dependencies by pip
-installing (you might need to add `--user` to the end of the command
-lines):
+** Introduction - Deep Learning
 
-#+LATEX: \footnotesize
-#+BEGIN_SRC sh
-# Optional, setup a separate virtualenv to keep everything clean
-virtualenv ENV
-source ENV/bin/activate
-# Download dependencies, tensorflow will be the CPU version
-pip install matplotlib tensorflow seaborn scikit-learn h5py jupyter
-# Then you could start a notebook
-jupyter notebook
-#+END_SRC
+- /Deep learning/ - *learning* refers to machine learning, *deep*
+  refers to a special property of the technique but generally means
+  the technique operates on much lower level information than older
+  machine learning algorithms, and goes through multiple levels of
+  processing (all automated by the learning algorithms, of course)
+- Ex: in the old days (pre-2012), image recognition might proceed by
+  first using specialized edge detectors feeding to specialized shape
+  detectors feeding to older machine learning algorithms operating on
+  high level info. Today, we would just feed raw pixels into a deep
+  learning algorithm and let it figure out the intermediate
+  representations.
 
-For a GPU tensorflow, usually best to build yourself (out of scope)
+** Introduction - Deep Learning Applications
 
-- Now, let's setup a new workspace
+- Typical applications include:
+- Image classification: cat vs dog, or photon vs hadron
+- Image segmentation: draw a box around all the people in this image,
+  or e.g. all the galaxies in this image from the Hubble telescope
+- Voice recognition: "Hey Siri" vs all the other phrases you say
+  around a phone
+- Machine translation: this series of utterances in Korean correspond
+  to these in English
+- Hopefully, you can see how some of these could be useful to us in
+  science
+- Today, we'll mostly be considering image analysis, but the
+  techniques are similar for the other problems
 
-** Google Colab / Jupyter Basic Usage
-
-- _[[https://colab.research.google.com/notebook]]_
-- Offers free jupyter-notebook-as-a-service in the cloud
-  - Even offers free access to cloud-based GPUs
-- Has all the packages we'll need for today pre-installed
-- Demo
-  - Basic jupyter usage
-
-#+LATEX: \tiny
-#+BEGIN_SRC python
-!ls # execute external commands
-import os
-?os # help at your fingertips
-pi = 3.14159 # interpreter persists over cells
-pi*2
-
-def area(radius):
-    return pi*radius**2
-
-area(1)
-
-# inline plotting
-import numpy as np
-import matplotlib.pyplot as plt
-
-x = np.linspace(-3.14, 3.14, 100)
-y = np.sin(x)
-plt.plot(x, y)
-plt.show()
-#+END_SRC
-
-** Keras
-
-#+ATTR_LATEX: :width .25\textwidth
-[[file:figures/keras-logo-small-wb.png]]
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .25\textwidth
-[[file:figures/tensorflow-logo.png]]
-
-- Deep learning framework built by Google engineer François Chollet
-- High-level interface built allowing eg Theano or Tensorflow as a backend
-  - Has been accepted into mainline Tensorflow, so always accessible there
-- Library written in python, user-friendly interface
-- Easy to get started building networks
-- Highly modular and easily expandable
-  - Can drop down into the underlying library when complex/bespoke operations
-    are needed
-- Quickly build and train serious models
-
-** imports
-
-- Follow along either on the web-based service, or your own machine
-- Lets pull in all the imports and definitions we'll need
-
-***                                                                   :BMCOL:
-    :PROPERTIES:
-    :BEAMER_col: .5
-    :END:
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports code :results none
-import h5py
-import matplotlib
-# matplotlib.use("AGG")  # To batch graphics
-import matplotlib.pyplot as plt
-import os
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-import sklearn
-import numpy as np
-import tensorflow as tf
-
-keras = tf.keras
-Sequential = keras.Sequential
-Activation = keras.layers.Activation
-Dense = keras.layers.Dense
-LeakyReLU = keras.layers.LeakyReLU
-BatchNormalization = keras.layers.BatchNormalization
-Reshape = keras.layers.Reshape
-UpSampling2D = keras.layers.UpSampling2D
-Dropout = keras.layers.Dropout
-Conv2D = keras.layers.Conv2D
-MaxPooling2D = keras.layers.MaxPooling2D
-Flatten = keras.layers.Flatten
-SGD = keras.optimizers.SGD
-mnist = keras.datasets.mnist
-#+END_SRC
-
-* NN: Fisher's Irises
-** Overarching Idea of (Supervised) Maching Learning
+* Neural Networks
+** Machine Learning: Neural Network
 
 - Framework for Machine Learning: given a set of data, and set of
   expected outputs (typically categories), build a system which learns
   how to connect data to output
-- Neural Network is one type, connect stacks of tensor operators with fixed linear and non-linear transformations
-- Optimize transformation parameters so as to approximate expected outputs
+- A *Neural Network* is one type: connect stacks of tensor operators
+  with fixed linear and non-linear transformations
+- We'll start by building up a neural network classifier from the
+  ground up, this will give us some insight into how machine learning
+  works, and how neural networks find their results
 
-** The iris dataset and a basic network with Keras
-
-***                                                                   :BMCOL:
-    :PROPERTIES:
-    :BEAMER_col: .5
-    :END:
-
-#+ATTR_LATEX: :width \textwidth
-[[file:figures/iris_petal_sepal.png]]
-
-***                                                                   :BMCOL:
-    :PROPERTIES:
-    :BEAMER_col: .5
-    :END:
-
-- Let's take a concrete example
-- The iris dataset is a classic classification task, first studied by
-  Fisher in 1936. 
-- The goal is, given features measured from a particular
-  iris, classify it into one of three species
-  - Iris setosa, virginica, versicolor. 
-- The variables are: Sepal width and length, petal width and length (all in cm).
-
-** Iris dataset
-
-We begin by loading the iris dataset, helpfully available from the
-seaborn pacakge, which also lets us create plots showing the
-correlations between the variables.
-
-#+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :results value :exports both
-iris = sns.load_dataset("iris")
-iris.head()
-#+END_SRC
-
-#+RESULTS:
-:    sepal_length  sepal_width  petal_length  petal_width species
-: 0           5.1          3.5           1.4          0.2  setosa
-: 1           4.9          3.0           1.4          0.2  setosa
-: 2           4.7          3.2           1.3          0.2  setosa
-: 3           4.6          3.1           1.5          0.2  setosa
-: 4           5.0          3.6           1.4          0.2  setosa
-
-# #+LATEX: \small
-# In Kaggle, add the iris json dataset, then load in pands
-
-# #+LATEX: \footnotesize
-# #+BEGIN_SRC python :session mltute :results value :exports both
-# import pandas as pd
-# iris = pd.read_json("../input/iris.json")
-# iris.head()
-# #+END_SRC
-
-# #+RESULTS:
-# :    sepal_length  sepal_width  petal_length  petal_width species
-# : 0           5.1          3.5           1.4          0.2  setosa
-# : 1           4.9          3.0           1.4          0.2  setosa
-# : 2           4.7          3.2           1.3          0.2  setosa
-# : 3           4.6          3.1           1.5          0.2  setosa
-# : 4           5.0          3.6           1.4          0.2  setosa
-
-** Iris Variables
-
-#+LATEX: \footnotesize
-Lets view the basic variables we have. Setosa (blue) looks easily
-separable by the petal length and width, but versicolor and virginica
-are a little tricky.
-
-#+LATEX: \scriptsize
-#+BEGIN_SRC python :session mltute :results file :exports both
-plot = sns.pairplot(iris, hue="species")
-plot.savefig('iris.png'); 'iris.png'
-#+END_SRC
-
-#+ATTR_LATEX: :width .5\textwidth
-#+RESULTS:
-[[file:figures/iris.png]]
-
-** The Logistic Function and Logistic Regression
+** The Logistic Function
 
 \centering
 #+ATTR_LATEX: :width .4\textwidth
@@ -296,6 +164,70 @@ plot.savefig('iris.png'); 'iris.png'
   - Thus, we need to transform the input variables into 1D, then pass through the logistic function
 - This is a simple classification technique called /logistic regression/
 
+** Logistic regression
+
+- Setup: we have data from two different classes, which can be
+  described by the same independent variables, and we want to
+  distinguish them based on those independent variables
+- We want to build a function such that data from one class goes close
+  to 1, from the other close to 0
+- We will build a linear function of the variables, then pass it
+  through the logistic function, and try to minimise the distance of
+  data from 0 (for one class), or 1 (for the other)
+- \(y_i = \sigma(\vec\beta \cdot \vec{x_i}) + \epsilon_i\), \(y_i\) = 0 if \(x_i\) from class 0, 1 if \(x_i\) from class 1
+  - \(\vec\beta \cdot \vec{x_i} = \beta_0 + \beta_1 x_1 + \ldots \beta_k x_k\)
+  - \(\sigma(x) = \frac{1}{1+e^{-x}}\) the logistic function
+- The machine-learning goal would be find the values of \beta which
+  best classifies the classes
+
+*** 
+
+- Note: the logistic function is also called the sigmoid function,
+  logistic curve, turn on curve, etc. depending on the context its
+  used in
+
+** Illustration: 1D Projection
+
+#+attr_latex: :width .32\textwidth
+[[file:figures/join_means.png]]
+#+attr_latex: :width .32\textwidth
+[[file:figures/line_join_means.png]]
+#+attr_latex: :width .32\textwidth
+[[file:figures/mean_distribution.png]]
+
+- \(\vec\beta \cdot \vec{x}\) is a projection of the data onto a line
+- Red and blue are two classes which can be measured in \((x_1, x_2)\)
+- We can take the mean of each class (left), form a line between, then
+  project the data onto the line (middle) giving a distribution (right)
+  - We have reduced the 2D data into a 1D projection
+- After the projection, the logistic rejection chooses a cut point
+  (via \(\beta_0\)) then sends things below the cut to 0, above to 1
+- Here, we see some separation between the classes but a lot of
+  overlap. We can do better
+
+** Illustration: Better Fit
+
+#+attr_latex: :width .32\textwidth
+[[file:figures/datapoints.png]]
+#+attr_latex: :width .32\textwidth
+[[file:figures/fisher_discriminant.png]]
+#+attr_latex: :width .32\textwidth
+[[file:figures/fisher_distro.png]]
+
+- Finding the best discriminant for our illustrative dataset shows
+  that these two classes are fully separable
+  - Find \beta which minimizes a *loss function* which gives a penalty
+    for misclassifying data: \(MSE = \frac{1}{m} \sum_i \left(f(x_i;\beta) -
+    y_i\right)^2 \) (the Mean-Squared Error loss),
+    we want to *minimize the loss* over parameters \beta
+  - This is the usual goal in ML: setup a parameterized model and then
+    define a function to minimize which gives the best parameters
+- The Logistic Regression will place the cut point between the data
+  and so all red go to 0, blue go to 1 after passing through the logistic function
+
+\tiny From
+_[[https://medium.freecodecamp.org/an-illustrative-introduction-to-fishers-linear-discriminant-9484efee15ac]]_
+
 ** Some very simple examples for simple logistic regression
 
    #+begin_export latex
@@ -307,7 +239,8 @@ plot.savefig('iris.png'); 'iris.png'
 \includegraphics<3>[width=.33\textwidth]{figures/OR_turnon.png}   
    #+end_export
 
-- Let's think about approximating some simple binary functions
+- Let's think about approximating some simple binary functions as a
+  basic classification task
 - OR and AND gates
   - OR is 0 (red) if both input are 0, 1 (blue) otherwise
   - AND is 1 if both inputs are 1, 0 otherwise
@@ -325,6 +258,7 @@ plot.savefig('iris.png'); 'iris.png'
 \includegraphics[width=.33\textwidth]{figures/XOR.png}
 #+end_export
 
+- So, with logistic regression we can separate classes that act like AND/OR gates
 - Now consider the XOR gate: 1 if both inputs are the same, 0 otherwise
 - The XOR gate can't be generated with a logistic function!
 - Try it: no matter what line you draw, can't draw a logistic function
@@ -363,7 +297,7 @@ plot.savefig('iris.png'); 'iris.png'
 - Decompose the function into:
   - [[color:green][the /input layer/ of \(\hat{x}\)]],
   - [[color:blue][the /hidden layer/ which calculates \(h_i = \beta_i
-    \cdot x\) then passes if through the /activation function/ \sigma,
+    \cdot x\) then passes it through the /activation function/ \sigma,
     (called "sigmoid" in NN terms)]]
     - There is an extra \(\beta_0\), called the /bias/, which controls
       how big the input into the node must be to activate; \sigma is
@@ -420,7 +354,7 @@ plot.savefig('iris.png'); 'iris.png'
 - We can even have several hidden layers
   - The previous layer acts the same as an /input layer/ to the next
     layer
-- We call each node in the network a /neuron/
+- We also call each node in the network a /neuron/, for historical reasons
 - The deep learning algorithms we will see later are just variations
   on this theme, using more complicated transformations
 
@@ -448,7 +382,7 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
   - Any (sensible) activation \(\varphi\) can work, not just \sigma
 - There is a simple, graphical proof for those who are interested: _[[http://neuralnetworksanddeeplearning.com/chap4.html]]_
 
-** Neural Networks Overview
+** Neural Networks Review
 
 #+LATEX: \centering
 #+ATTR_LATEX: :width .5\textwidth
@@ -463,381 +397,81 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
 - Need to *train* the weight matrix $W$ and the bias vector $b$ and
   optimize a "loss" function that represents a distance from the target output
 
-** Backpropagation
+
+** Analogy: Steepest descent
+
+***                                                                   :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: .4
+    :END:
+
+#+ATTR_LATEX: :width \textwidth
+[[file:figures/steepest_descent.jpg]]
+
+#+ATTR_LATEX: :width \textwidth
+[[file:figures/steepest_mountain.jpg]]
+
+***                                                                   :BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: .65
+    :END:
+
+- A climber is trying to find his way down a mountain in deep fog, how
+  should he proceed?
+- One idea is to try to always go downhill the fastest way possible
+- So, he figures out which direction has the steepest descent (ie
+  which way is downhill), then takes a step in that direction
+- After the step, he checks again, and takes another step
+- He keeps proceeding in this manner until he cant go downhill
+  anymore, he's reached the bottom
+
+** Gradient Descent
+
+- From calculus, \(\nabla f(\mathbf{x})\) gives the direction of
+  largest increase of \(f\) at \(x\) (if its \(\mathbf{0}\), we are at
+  a minimum and done)
+- Equivalently, \(-\nabla f(\mathbf{x})\) gives direction of largest
+  decrease, so \(f(\mathbf{x} - \gamma\nabla f(\mathbf{x})) <
+  f(\mathbf{x})\) (at least, for some \(\gamma\) small enough)
+- We will define a sequence \(\mathbf{x}_i\) to find the minimum:
+  - Start with some random position \(\mathbf{x}_0\)
+  - Iterate:
+    - Find \(\mathbf{x}_{n+1} = \mathbf{x}_n - \gamma_n \nabla f(\mathbf{x}_n)\)
+    - Stop if \(|f(\mathbf{x}_{n+1}) - f(\mathbf{x}_{n})| <
+      \epsilon\), i.e. we're not reducing further, so we're close to
+      the minimum
+  - Return the final \(\mathbf{x}_n\)
+- \(\gamma_n\) can be different for each iteration, we'll find the
+  best \(\gamma_n\) by checking several possible values
+- \epsilon is the /tolerance/, how close to a minima do we need to be
+  before stopping (we could also check \(|\nabla f(\mathbf{x}_n)| < \epsilon\))
+
+** Example function
+
+\centering
+#+ATTR_LATEX: :width .7\textwidth
+[[file:figures/GD_Path.png]]
+
+- Shows how the algorithm picks out different paths depending on
+  starting point
+- Lines are contours of equal value
+
+** Training Neural Networks: Backpropagation
 
 - The algorithm to train neural networks is called *backpropagation*
 - Its essentially a gradient descent implemented taking the network
   structure into account to speed up evaluation of the partials
-- To apply gradient descent, need a function of a single variable, called the /loss/
-  - \(L(x_i|\sigma) = \sum_i |f(x_i | \sigma) - y_i|^2\) for inputs \(x_i\) and known output \(y_i\)
-- We start with the parameters set to arbitrary values, usually picked from e.g. unit gaussian
-- We run a forward pass through the network and calculate the loss
-- Using the chain rule, calculate /all/ the derivates backward from the loss to
-  the higher layers
-- Propagate changes based on the gradient $\Delta w_i = -\eta \frac{\partial f}{\partial w_i}$
+- To apply gradient descent, we need a function to minimize, this is our loss function from earlier
+  - \(L(x_i; \theta) = \sum_i |f(x_i; \theta) - y_i|^2\) for inputs \(x_i\) with known output \(y_i\)
+- We start with the parameters \theta set to arbitrary values, usually picked from e.g. the unit gaussian
+- We run a forward pass through the network and calculate the loss,
+  keeping track of the values at the intermediate nodes
+- Using the chain rule, calculate the derivates /for all weights/ backward from the loss to
+  the higher layers to the inputs, in a single pass
+- Propagate changes based on the gradient $\Delta \theta_i = -\eta \frac{\partial L}{\partial \theta_i}$
 - For more on how backpropagation works: _[[http://neuralnetworksanddeeplearning.com/chap2.html]]_
 
-** Keras Networks
-
-In order to classify the irises, we'll build a simple network in Keras.
-
-- The basic network type in Keras is the =Sequential= model. 
-- The =Sequential= model builds a neural network by stacking layers 
-  - Keras also has a =Graph= model that allows arbitrary connections
-- It builds up like lego, adding one layer on top of another and 
-  connecting between the layers
-  - Keras comes with a menagerie of pre-built layers for you to use.
-- Interface to/from the model with numpy arrays
-
-#+LATEX: \centering
-#+ATTR_LATEX: :width .5\textwidth
-[[file:figures/nn-1a.png]]
-
-** Model
-
-- Our model will be a simple NN with a single hidden layer
-- We start by building a Sequential model and add a Dense (fully-connected) layer, with sigmoid activation
-- Dense: standard layer, all inputs connect to all outputs: $\hat{y} = W\hat{x} + \hat{b}$
-  - =keras.layers.Dense(output_dim)=
-  - Can also set the initalization, add an activation layer inline, add regularizers inline, etc.
-- Activation: essentially acts as a switch for a given node, turns output on/off based on threshold
-  - =keras.layers.Activation(= /type/ =)=
-    - Where /type/ might be:
-  - /sigmoid/: $f(x) = \frac{1}{1 + e^{-x}}$
-  - /tanh/: $f(x) = \tanh{x} = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
-  - /relu/: $f(x) = \mathrm{max}(0, x)$, 'rectified linear unit'
-  - /softplus/: $f(x) =  \ln{(1 + e^x)}$, smooth approx. to /relu/
-  - /softmax/: $f_k(x) = \frac{e^{-x_k}}{\sum_i e^{-x_i}}$ for the $k$'th output, as last layer of categorical distribution, represents a probability distribution over the outputs
-
-** Build a model: Python code
-
-#+LATEX: \footnotesize \vspace{-2mm}
-#+BEGIN_SRC python :session mltute :exports both  :results output
-# Build a model
-model = Sequential()
-
-model.add(Dense(128, input_shape=(4,)))
-model.add(Activation('sigmoid'))
-# model.add(Dense(128))
-# model.add(Activation('sigmoid'))
-model.add(Dense(3))
-model.add(Activation('softmax'))
-
-model.compile(optimizer='adam', loss='categorical_crossentropy', 
-              metrics=['accuracy'])
-model.summary()
-#+END_SRC
-
-#+LATEX: \tiny
-#+RESULTS:
-#+begin_example
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #   
-=================================================================
-dense_1 (Dense)              (None, 128)               640       
-_________________________________________________________________
-activation_1 (Activation)    (None, 128)               0         
-_________________________________________________________________
-dense_2 (Dense)              (None, 3)                 387       
-_________________________________________________________________
-activation_2 (Activation)    (None, 3)                 0         
-=================================================================
-Total params: 1,027
-Trainable params: 1,027
-Non-trainable params: 0
-_________________________________________________________________
-#+end_example
-
-** More on model building
-
-- When =add='ing layers, keras takes care of input/output size details
-  - Except for the input layer, which must be specified
-  - We explicitly gave the network =(4,)= for our 4 input variables
-- The final layer we make size 3 after a softmax activiation
-  - This will output the network probability for each of the potential
-    iris classes as a numpy array 
-    =(nsamples, (= $p_{setosa}$, $p_{virginica}$, $p_{versicolor}$ =))=
-- We =compile= the model with an optimizer and loss function
-  - The loss function will be minimized during the training phase
-- We can give auxilliary =metrics= which will be calculated with the loss
-- Keras automatically takes care of calculating derivatives through the network for the backprop phase
-- We could be more explicit in creating the functions if we want more control over hyperparameters:
-
-
-#+LATEX:  \scriptsize
-#+BEGIN_SRC python
-model.compile(loss=keras.losses.mean_squared_error, 
-              optimizer=keras.optimizers.SGD(lr=0.0005, momentum=0.9,
-                                             nesterov=True))
-#+END_SRC
-
-
-** More on model building
-
-Here we used the adam optimizer which automatically updates the step
-sizes used for parameter optimization, with a categorical
-cross-entropy loss, which measures $-\sum_{i} t_i\log{p_i}$ where
-$t_i$ is 1 for the true label and $p_i$ is the probability of the
-\(i\)th label assigned by the model. As the model assigns higher
-probability to the correct label, the cross-entropy goes to 0.
-
-- Other options to consider:
-  - Activation: /sigmoid/, /softmax/, /linear/, /tanh/, /relu/, \ldots
-  - Optimizer: /SGD/, /RMSprop/, /Adagrad/, /Adadelta/, /Adam/, \ldots
-  - Loss: /categorical_crossentropy/, /binary_crossentropy/, /mean_squared_error/, \ldots
-
-ReLU \hfill sigmoid \hfill tanh \hfill softplus
-
-#+ATTR_LATEX: :width .242\textwidth
-[[file:figures/relu.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:figures/sigmoid.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:figures/tanh.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:figures/softplus.png]]
- 
-** Model picture
-
-If pydot is installed we can also output a picture of the network
-
-\footnotesize
-#+BEGIN_SRC python :session mltute :results file :exports both
-keras.utils.plot_model(model, to_file='iris_model.png')
-#+END_SRC
-
-#+ATTR_LATEX: :width .24\textwidth
-#+RESULTS:
-[[file:figures/iris_model.png]]
-
-** Training Code
-
-#+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :exports both :results output
-# Split the variables to train, and the target
-variables = iris.values[:, :4]
-species = iris.values[:, 4]
-
-# One hot encode the species target
-smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
-species_enc = np.eye(3)[list(smap[s] for s in species)]
-
-# To show we are simply passing numpy arrays of the data
-print(variables[0], species[0], species_enc[0])
-
-train_X, test_X, train_y, test_y = \
-  train_test_split(variables, species_enc, train_size=0.8, random_state=0)
-model.fit(train_X, train_y, epochs=15, batch_size=1, verbose=1)
-#+END_SRC
-
-#+LATEX: \tiny
-#+RESULTS:
-#+begin_example
-[5.1 3.5 1.4 0.2] setosa [ 1.  0.  0.]
-Epoch 1/15
-120/120 [==============================] - 0s - loss: 0.2873 - acc: 0.9500     
-
-...
-
-Epoch 15/15
-120/120 [==============================] - 0s - loss: 0.1477 - acc: 0.9583
-#+end_example
-
-** Training
-
-- Now we fit to the training data. 
-- We can set the number of =epochs=, =batch_size=, and =verbose='ity
-  - Epochs: number of training passes through the complete dataset
-  - Batch size: number of datapoints to consider together when
-    updating the network
-- We pass through the input data as a numpy array (nsamples, 4)
-- We pass the output as (nsamples, 3) where for each sample one
-  of the positions is 1, corresponding to the correct class. 
-- We use the =np.eye= identity matrix creator to help us transform the raw species
-  information (which labels classes setosa, virginica, versicolor) to
-  the expected format
-  - Setosa = =(1, 0, 0)=
-  - Versicolor = =(0, 1, 0)=
-  - Virginica = =(0, 0, 1)=
-- We fit the model to a labelled dataset simply by calling =fit= with
-  the dataset =train_X= and the true labels =train_y=
-
-** Evaluation
-
-- After running the model, we can =evaluate= how well it works on the
-  labelled /test/ data we kept aside for /overfitting/ evaluation
-  purposes.
-  - Overfitting is when the model fits to the training set in a way
-    that doesn't generalize to unseen samples
-  - One usually also has a separate /validation/ set, use the /test/
-    set on a single model, choose a model you like, then check the
-    /hyperparameters/ didn't cause bias by checking the /validation/
-
-#+BEGIN_SRC python :session mltute :exports both :results output
-  # The evaluation passes out the overall loss, 
-  # as well as any other metrics you included 
-  # when compiling the model
-  loss, accuracy = model.evaluate(test_X, test_y, verbose=0)
-  print("Loss={:.2f}\nAccuracy = {:.2f}".format(loss, accuracy))
-#+END_SRC
-
-#+LATEX: \scriptsize
-#+RESULTS:
-: Loss=0.11
-: Accuracy = 0.97
-
-** Prediction
-
-- And we can ask the model to =predict= some unlabelled data
-  - For illustration, we just use our test data, and compare the true
-    label against the 'prediction'
-  - In the output, I stack the true answers (first rows), and the
-    prediction, which can basically be interpreted as the model's
-    probability for each category (second rows)
-
-#+BEGIN_SRC python :session mltute :exports both :results output
-pred_y = model.predict(test_X)
-print(np.stack([test_y, pred_y], axis=1)[:10])
-#+END_SRC
-
-#+LATEX: \scriptsize
-#+RESULTS:
-#+begin_example
-[[[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  2.63856982e-05   8.96630138e-02   9.10310626e-01]]
-
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  1.57812089e-02   9.63519156e-01   2.06995625e-02]]
-
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.96497989e-01   3.50204227e-03   1.25929889e-09]]
-
- [[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  4.74178378e-05   1.32592529e-01   8.67359996e-01]]
-
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.87556934e-01   1.24430126e-02   1.36296467e-08]]
-
- [[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  7.08267498e-06   3.83740403e-02   9.61618841e-01]]
-
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.89948869e-01   1.00511070e-02   9.48140944e-09]]
-
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  6.58096792e-03   8.90939236e-01   1.02479771e-01]]
-
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  4.53994563e-03   8.66963148e-01   1.28496900e-01]]
-
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  1.97829530e-02   9.56251919e-01   2.39650477e-02]]]
-#+end_example
-
-* DNN: MNIST
-** MNIST digit recognition and Convolutional Networks
-
-- Another, more recent, classic classification task. 
-- Given a 28x28 image of a handwritten digit, can you train a classifier to recognize the
-  numbers from 0 to 9?
-- Keras has the ability to download the dataset and parse it into
-  numpy arrays. We use =to_categorical= to one hot encode the true
-  labels (which number did they write?) as for the irises
-
-#+LATEX: \scriptsize
-#+BEGIN_SRC python :session mltute :exports code
-(x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
-#+END_SRC
-
-#+RESULTS:
-
-#+BEGIN_SRC python :session mltute :exports both :results output
-from keras.utils.np_utils import to_categorical
-# or to_categorical = tf.keras.utils.np_utils.to_categorical
-
-print(y_train[:4])
-y_train_enc = np.eye(10)[y_train]
-y_test_enc = to_categorical(y_test) # many ways to do the same thing
-print(y_train_enc[:4])
-#+END_SRC
-
-#+RESULTS:
-: [5 0 4 1]
-: [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.  0.]
-:  [ 1.  0.  0.  0.  0.  0.  0.  0.  0.  0.]
-:  [ 0.  0.  0.  0.  1.  0.  0.  0.  0.  0.]
-:  [ 0.  1.  0.  0.  0.  0.  0.  0.  0.  0.]]
-
-** Examples
-
-- We can use =matplotlib.pyplot= to show a few example digits
-- In /jupyter/, matplotlib results will show automatically, so you
-  don't need to print it out (or resize it for that matter)
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :results file :exports both
-print(x_train.shape, y_train_enc.shape)
-plt.clf()
-for i in range(6):
-    plt.subplot(1,6,i+1)
-    plt.imshow(x_train[i], cmap='gray')
-
-F = plt.gcf(); F.set_size_inches((14,2))
-plt.savefig('mnist-examples.png');
-#+END_SRC
-
-#+RESULTS:
-[[file:figures/mnist-examples.png]]
-
-#+ATTR_LATEX: :width \textwidth
-#+RESULTS:
-
-** Simple Network
-
-- We can start by simply trying a basic neural network as before. 
-- `Flatten` takes the 2D input and concatenates the rows together to a 1D form suitable for passing to a `Dense` layer.
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports code 
-model = Sequential()
-model.add(Flatten(input_shape=(28,28)))
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(10))
-model.add(Activation('softmax'))
-
-model.compile(optimizer='adam', loss='categorical_crossentropy', 
-              metrics=['accuracy'])
-#+END_SRC
-
-#+RESULTS:
-
-** Simple Network
-
-- And =fit= and =evaluate= as we did before
-
-#+BEGIN_SRC python :session mltute :exports both :results output
-model.fit(x_train, y_train_enc, epochs=3, verbose=1)
-loss, accuracy = model.evaluate(x_test, y_test_enc, verbose=0)
-print("Loss={:.2f}\nAccuracy = {:.2f}".format(loss, accuracy))
-#+END_SRC
-
-#+LATEX: \footnotesize
-#+RESULTS:
-: Epoch 1/3
-: 60000/60000 [==============================] - 4s - loss: 0.5373 - acc: 0.8531     
-: Epoch 2/3
-: 60000/60000 [==============================] - 4s - loss: 0.3729 - acc: 0.8861     
-: Epoch 3/3
-: 60000/60000 [==============================] - 4s - loss: 0.3207 - acc: 0.9020     
-: Loss=0.30
-: Accuracy = 0.91
-
+* Deep Learning
 ** A Convolutional Network
 
 #+LATEX: \vspace{-2mm} \centering
@@ -859,105 +493,126 @@ print("Loss={:.2f}\nAccuracy = {:.2f}".format(loss, accuracy))
 #+LATEX: \tiny
 Reference: http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/
 
-** What is the Network Learning?
 
-- In general a difficult question to answer
-- Here, Zeiler and Fergus (2013) took a trained network and /optimized
-  the input/ to activate particular nodes to give an idea
-  - Start with noise, then GD on the input, optimizing the node activation
+** Convolutional Layers
 
-#+ATTR_LATEX: :width .9\textwidth
-[[file:figures/network_layers.png]]
+- A convolution layer is a connection between one layer and the next
+  in a NN with a very specific structure:
+  - Typically, it works with a 3d input like an image: channels (red,
+    green, blue), width, height
+  - It contains a *kernel* or *filter*, which is a 3d block sized
+    $channel \times n \times m$, $n$ and $m$ are user-specifed, with
+    each element of the block a weight to be set in training
+  - The outputs consists of all $n \times m$ /convolutions/ of the
+    filter with the image, creating a new one-channel image
+    - Discrete convolution, meaning each element of the kernel is
+      multiplied with a pixel in (one channel of) the image, and all
+      are summed together
+  - The output of the filter is passed through an activation function,
+    the same as the usual fully-connected layer
+- A single convolutional layer generally consists of many
+  convolutional filters, each filter giving one layer in the output
+- Networks with convolutional layers are Convolutional Neural
+  Networks: CNN
 
-** Reshaping data for Keras
+** Convolutional Filters In Pictures
 
-- Convolution of this type in Keras is provided by the =Conv2D= layer
-- =Conv2D= requires passing an array of /width x height x channels/
-  - Where channels might represent colors of an image
-- We have black and white images so we'll just reshape it into the
-  required form with a single channel.
-- We plot the image just check show the shaping is correct
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-0.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-1.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-2.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-3.png]]
 
-#+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :exports both :results file
-x_train_dense = x_train.reshape((len(x_train), 28,28,1))
-x_test_dense = x_test.reshape((len(x_test), 28,28,1))
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-4.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-5.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-6.png]]
+#+attr_latex: :width .24\textwidth
+[[file:figures/conv_schem-7.png]]
 
-plt.clf()
-plt.imshow(x_train_dense[0,:,:,0], cmap="gray")
-F = plt.gcf(); F.set_size_inches((2,2)); plt.savefig("testimg.png");
-#+END_SRC
+***                                                                   :BMCOL:
+   :PROPERTIES:
+   :BEAMER_col: .25
+   :END:
 
-#+LATEX: \vspace{-3mm}
-#+ATTR_LATEX: :width .2\textwidth
-#+RESULTS:
-[[file:figures/testimg.png]]
+#+attr_latex: :width .98\textwidth
+[[file:figures/conv_schem-8.png]]
 
-** Building a Convolutional Neural Network in Keras
+***                                                                   :BMCOL:
+   :PROPERTIES:
+   :BEAMER_col: .75
+   :END:
 
-- Now, lets build a convolutional neural network!
-- Generally, =Conv2D= will be stacked on top of each other with
-  =MaxPooling2D= layers and learn edge detection at lower layers and
-  higher level feature extraction in subsequent layers.
-- But just to show how to use them in keras, we'll just create one
-  convolution layer with 32 filters, then =Flatten= it into a 1D array
-  and pass it into a =Dense= hidden layer before the output.
-- We can set the =kernel_size= (/m x n/ size of the filter), and the number of filters used
+- A [[color:olive][filter]] sliding over the [[color:MyGreen][image]] builds up the [[color:red][output layer]], each
+  output is sum of filter elements multiplied by image pixels
+- The same filter is used for each pixel, the weights are learnt
+  during training (as well as an output bias)
 
-** Building a Convolutional Neural Network in Keras
+***                                                         :B_ignoreheading:
+:PROPERTIES:
+:BEAMER_env: ignoreheading
+:END:
 
-- We can set the =kernel_size= (/m x n/ size of the filter), and the number of filters used
+\tiny https://www.kdnuggets.com/2015/11/understanding-convolutional-neural-networks-nlp.html
 
-#+BEGIN_SRC python :session mltute :exports code
-model = Sequential()
+** Example Filter
 
-model.add(Conv2D(32, kernel_size=(3,3),input_shape=(28,28,1)))
-model.add(Activation('relu'))
-model.add(Flatten())
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(10))
-model.add(Activation('softmax'))
+  #+latex: \centering
+#+attr_latex: :width .7\textwidth
+[[file:figures/edge_detection.png]]
 
-model.compile(optimizer='adam', 
-              loss='categorical_crossentropy', 
-	      metrics=['accuracy'])
-#+END_SRC
+- As an example, here is a 3x3 filter for detecting vertical edges
+- The opposing plus and minus sides cancel in a [[color:MyGreen][block of color]]
+- [[color:red][At an edge]], the filter is either highly positive (white to left of
+  edge), or negative (white to right of edge)
+- What would a horizontal edge detector look like?
 
-#+RESULTS:
+\tiny Andrew Ng lecture by way of
+https://kharshit.github.io/blog/2018/12/14/filters-in-convolutional-neural-networks
 
-** Training
+** Multiple Filter Outputs
 
-And train the model. This is already starting to get to the point
-where a GPU would be extremely helpful!
+  #+latex: \centering
+#+attr_latex: :width .3\textwidth
+[[file:figures/multiple_layers.png]]
 
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports both :results output
-model.fit(x_train_dense, y_train_enc, epochs=4, verbose=1)
-#+END_SRC
+- When multiple filters are used in a single layer, they have the same
+  width and height, so they can be put together in a single output as
+  $channels \times width \times height$
+- This is exactly the image structure which was the input to the
+  network
+- This means this convolutional structure can be used several times in
+  series
+  - Each successive layer effectively sees a larger part of the image,
+    since each pixel in the output of one layer is from several pixels
+- The image shows that a 3-channel input needs filters with a 3x3x3
+  block, and 2 filters produce a 2 channel output
 
-#+LATEX: \footnotesize
-#+RESULTS:
-: Epoch 1/4
-: 60000/60000 [==============================] - 65s - loss: 0.4544 - acc: 0.8825    
-: Epoch 2/4
-: 60000/60000 [==============================] - 70s - loss: 0.1745 - acc: 0.9493    
-: Epoch 3/4
-: 60000/60000 [==============================] - 68s - loss: 0.1369 - acc: 0.9591    
-: Epoch 4/4
-: 60000/60000 [==============================] - 69s - loss: 0.1227 - acc: 0.9634    
-: <keras.callbacks.History object at 0x11d742390>
+** Filters Over Several Input Layers
 
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports both :results output
-loss, accuracy = model.evaluate(x_test_dense, y_test_enc, verbose=0)
-print("Loss={:.3f}\nAccuracy = {:.3f}".format(loss, accuracy))
-#+END_SRC
+  #+latex: \vspace{-1mm} \centering
+#+attr_latex: :width .8\textwidth
+[[file:figures/features.png]]
 
-#+LATEX: \footnotesize
-#+RESULTS:
-: Loss=0.117
-: Accuracy = 0.964
+#+latex: \vspace{-4.5mm}
+- Convolutional layers are typically built up one after the other
+- The idea is that features get /built up/, at low levels, you might
+  have edge detectors, later layers use these edges to build up
+  structure, and by high levels recognizable objects are being
+  searched for
+  - These images are made by doing reverse gradient descent on the
+    network, i.e. updating the image pixels themselves, trying to make
+    the image "light up" (set node output high) a particular node
+- Networks these days can contain /hundreds/ of these layers
+  - This is the meaning of /deep/ in deep learning
+
+#+latex: \tiny
+Image from https://twopointseven.github.io/2017-10-29/cnn/
 
 ** Realistic Networks
 
@@ -968,475 +623,172 @@ print("Loss={:.3f}\nAccuracy = {:.3f}".format(loss, accuracy))
 - Typically, networks consist of several convolution layers following
   by max pooling layers (take the max from a 2x2 square)
 
+** Extensions You Can (and Should) Study
+
+- VGG16 has long been surpassed, but this is the basis for modern
+  image classification
+- Some examples of extending the basic CNN idea
+- Structural Changes
+  - ResNet: A powerful idea which greatly helps the classification
+    ability of the network: simply add the output from one layer to a
+    "residual" several layers down
+    - This allows the network to effectively "skip over" several
+      layers, so early training can set a few layer layers (avoiding
+      the Vanishing Gradient Problem), then subsequent training
+      "refines" the result with the residual layers
+  - Inception layers: Have multiple filter sizes from one layer, sum the outputs
+- Regularization
+  - BatchNorm and related techniques 
+- Transfer Learning: Start with a network trained on one problem,
+  refine the weights to solve a different problem
+  - The idea being a general network should have good, early layer
+    filters, and just need to refine the output layers for a new problem
+
 * GAN
-** A Convolution GAN
 
-- The idea is to train two adverserial networks,
-  - One is trying to create images equivalent to the MNIST dataset
-    - Given an input of noise, the /latent space/
-  - The other trying to label the images as either from the dataset or
-    fake
-    - Fake = generated by the opposing dataset
+** Beyond Classification
 
-#+ATTR_LATEX: :width \textwidth
-[[file:figures/Gan.png]]
+- The idea of Machine Learning and Deep Learning, in particular, is
+  that the model is not just learning to classify but capturing
+  essential features of the inputs: the *latent variables* of the dataset
+  - Not every pixel is created equal, in a dataset of cats, there are
+    far fewer ways to draw cat images than there are possible values for the pixels
+- We can train a model to find and fit the underlying latent variables which
+  captures the essential features and then can be used in ways other
+  than simply classifying the input
+- For example, we could use it to do:
+  - Denoising: Given a noisy or degraded sample, recover the original
+    (e.g. remove dirt or recolorize an old film image)
+  - Missing value imputation: fill in some missing data from a sample
+    (e.g. given an image where a black square was put over part of the
+    image, fill in what was in the square)
+  - Sampling: randomly generate a sample input drawn from the latent
+    variable probability distribution (starting from some random
+    noise, generate a random image that fits in the dataset)
 
-#+LATEX: \small \vspace{-2mm}
-- References:
-  - \scriptsize For more on GANs and their uses: https://arxiv.org/pdf/1701.00160.pdf
-  - \scriptsize Code based on: https://github.com/jacobgil/keras-dcgan
-  - \scriptsize Some tricks for training GANs https://github.com/soumith/ganhacks
+** Sampling
 
-** Idea: Image generator network
+- We have a *generator*, which we think of as a black box for now
+- The generator should be fed a vector from the latent variable space
+  - We can posit that the latent variables are gaussian, so pick out a
+    multi-dimensional gaussian, and give any arbitrary dimension
+  - Today, we won't give the latent variables explicit meaning, but
+    for our cat e.g. it could be things like what direction the cat is
+    facing, the color of the fur (along some spectrum), length of fur, shape of face, etc. etc.
+- The generator should spit out sample that is indistinguishable from
+  a sample pulled from the dataset
+- Say we take MNIST, and posit a latent space of dimension 10
+- If we have an MNIST generator, we sample a gaussian 10 times, feed
+  that 10D vector into the generator and it should spit out a 28x28
+  image of a hand-drawn number
+- This drawing should be indistinguishable from the original MNIST set
+  (given two images, one drawn from MNIST and one from the generator,
+  it should be impossible to tell which is which (assuming you
+  haven't just memorized the entire MNIST set))
 
-- We start with the image generation network
-- Essentially a image classifier in reverse. 
-- The top layer is for high-level feature inputs which we'll randomly set during the training. 
-- We then pass through Dense layers and then reshape into a /7 x 7 x
-  channels/ image-style layer.
-- We =Upsampling2D= and pass through convolutional filters until the
-  last layer which outputs a /28x28x1/ image as expected of an MNIST
-  greyscale image.
-  - Essentially we're /adding/ features as we go up, instead of
-    /extracting/ features as we go down
-- =BatchNormalization= is a technique to improve the network stability
-  by providing the next layer inputs with zero mean and unit variance
+** How to Build a Generator?
 
-** Generator
+- There are several ways we can take our basic CNN DL setup and use it
+  to build a generator G
+- Thinking about the last point of the previous page: what if we had a
+  network that tries to distinguish real MNIST images from images from
+  the generator?
+  - A /discriminator/ network D, outputs 0 for generated images, 1 for
+    real images
+- We could use the discriminator output like a loss function:
+  - Use G to generate an image from a random latent vector and pass
+    through D
+  - Make small changes to the parameters of G and see how D changes
+  - Update the parameters of G so that the D output *increases*
+  - I.e. we try to change G so that D gives values closer to 1 (the
+    output for a real MNIST image)
+  - Eventually, G should only output images that give D output 1
 
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports code
-# Complete code for the generator model
-nfeatures = 100
+** Adversaries
 
-generate = Sequential()
-generate.add(Dense(1024, input_dim=nfeatures))
-generate.add(Activation('tanh'))
-generate.add(Dense(128*7*7))
-generate.add(BatchNormalization())
-generate.add(Activation('tanh'))
-generate.add(Reshape((7, 7, 128)))
-generate.add(UpSampling2D(size=(2,2)))
-generate.add(Conv2D(64, (5,5), padding='same'))
-generate.add(Activation('tanh'))
-generate.add(UpSampling2D(size=(2,2)))
-generate.add(Conv2D(1, (5, 5), padding='same'))
-generate.add(Activation('sigmoid'))
-generate.compile(loss="binary_crossentropy", optimizer="SGD")
-#+END_SRC
-
-#+RESULTS:
-
-** Generator Test
-
-Now, just to check everythings put together properly, randomly pass
-some data through the network and check we get image outputs as
-expected.
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports both :results file
-nim = 25
-pred = generate.predict(np.random.uniform(0, 1, (nim,nfeatures)))
-
-plt.clf()
-for i in range(nim):
-    plt.subplot(np.sqrt(nim),np.sqrt(nim),i+1)
-    plt.imshow(pred[i,:,:,0], cmap='gray')
-
-pred[0].shape, np.average(pred[0])
-F = plt.gcf(); F.set_size_inches((10,10))
-plt.savefig("genimg_no.png")
-#+END_SRC
-
-** Example images, pre-training
-
-#+ATTR_LATEX: :width .7\textwidth
-#+RESULTS:
-[[file:figures/genimg_no.png]]
-
-** Discriminator
-
-- Next, we create the discriminating network, with an image input
-- As for classification, we have a convolutional layer attached to Dense layers. 
-- For the output, we now have a single sigmoid with interpretation:
-  - 0: The network thinks its definitely a generated image
-  - 1: The network thinks its definitely a real MNIST dataset image
-
-** Discriminator
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports code
-# Complete code for the discriminator network
-discr = Sequential()
-discr.add(Conv2D(64, (5,5), input_shape=(28,28,1), padding='same'))
-discr.add(Activation('tanh'))
-discr.add(MaxPooling2D((2,2)))
-discr.add(Conv2D(128, (5,5)))
-discr.add(Activation('tanh'))
-discr.add(MaxPooling2D((2,2)))
-discr.add(Dropout(0.5))
-discr.add(Flatten())
-discr.add(Dense(1024))
-discr.add(Activation('tanh'))
-discr.add(Dense(1))
-discr.add(Activation('sigmoid'))
-discr.compile(loss='binary_crossentropy', 
-              optimizer=SGD(lr=0.0005, momentum=0.9, 
-                            nesterov=True))
-#+END_SRC
-
-#+RESULTS:
-
-** Test the discriminator 
-
-- Test the network with a few MNIST images and some random images. 
-- Since the network isn't trained we don't yet expect any differences
-  in the output.
-
-#+BEGIN_SRC python :session mltute :exports both :results value
-x_prepred = np.concatenate(
-   [x_train[:5,:,:].reshape(5,28,28,1) / 256., 
-    np.random.uniform(0, 1, (5, 28, 28, 1))], axis=0)
-discr.predict(x_prepred)
-#+END_SRC
-
-#+RESULTS:
-| 0.53229088 | 0.53476292 | 0.53820759 | 0.5288614 | 0.52571678 | 0.57405263 | 0.58089125 | 0.58103019 | 0.5748226 | 0.57735825 |
+- But now D is useless: it can't tell real from fake images
+- But what if we now train D? I.e. pass real images and update D so it
+  gives outputs closer to 1, pass fake images and update D so it gives
+  outputs closer to 0
+  - Whatever criteria D used before to tell real from fake images no
+    longer works, so we retrain D to find new criteria
+- For a fixed network G, if we update D enough, images from G will be
+  given output 0 and images from MNIST will have output 1
+- With the updated D, we can start training G again to fool the new D
+- We can keep playing this game as long as we like
+  - Train G to fool D
+  - Train D to figure out which images are from G
+  - Ad infinitum
 
 ** GAN
 
-- Now we set up a network which will be used to train the generation
-  network. 
-- Keras allows us to simply add the models we just created
-  together into a Sequential like they were ordinary layers. 
-- So, we feed the generator output into the discriminator input and
-  set up an optimizer which will try to drive the generator to produce
-  MNIST-like images (i.e. to fool the discriminator). 
-- Keras allows us to turn layer training on and off through the
-  "trainable" variable attached to a layer, so when we train the
-  generator we can easily turn training for the discriminator off.
+- GAN: Generative Adversarial Network
+- This is the name for the setup we just described:
+  - Two networks are randomly initialized
+    - D takes in an image and outputs a number from 0 to 1
+    - G takes in a vector and outputs an image (so its output can be fed into D)
+    - The internal structure of the networks can be anything: D could
+      be a feed-forward neural network, or a CNN, or anything else
+    - We'll go through how to structure G, but a simple feed forward
+      network can also be used
+  - The networks are trained successively so the D distinguishes real
+    from G images, then G is trained to fool the current D into
+    believing its images are real
+  - And so on and on
 
-** Setup GAN
+#+latex: \tiny
+Original GAN paper:
+https://arxiv.org/abs/1406.2661
 
-- Using Keras, we can simply add the generator and discriminator
-  sub-networks into a new, combined network, similarly to any other
-  layer!
-- We can also simply tell it to turn off training the discriminator
-  weights when we are optimizing the generator!
+** GAN
 
-#+BEGIN_SRC python :session mltute :exports code
-gen_discr = Sequential()
-gen_discr.add(generate)
-discr.trainable = False
-gen_discr.add(discr)
-gen_discr.compile(loss='binary_crossentropy', 
-                  optimizer=SGD(lr=0.0005, momentum=0.9, 
-                                nesterov=True),
-                  metrics=['accuracy'])
-discr.trainable = True
-#+END_SRC
+#+attr_latex: :width .9\textwidth
+[[file:figures/Gan.png]]
 
-#+RESULTS:
+- Feed noise (random point in latent space) into G
+- Train G to fool D, train D to catch out G, \\
+  its a competition between the two networks
+- Alternate gradient descent on batches between G and D
+# s- You'll see it written as \[\min_G \max_D V(G,D) = E_{x \as p_{data}} (\log D(x))\]
 
-** Training the GAN
+** This Person Does Not Exist
 
-- Finally, we have the actual training
-- Here, we setup the batches ourselves and alternate between training
-  the discriminator and generator
-  - =model.train_on_batch=
-  - This was previously put together by Keras itself
-- We start by taking a batch of MNIST images (labeled 1), and
-  generator images (labeled 0) and run a training batch on the
-  discriminator network
-- Then, we turn off training off the discriminator and run training on
-  the generator+discriminator network with random high-level feature
-  inputs to the generator
-- We try to drive all the outputs to 1, i.e. train the generator to
-  more MNIST-like images (as according to the discriminator network)
-- Last remark: we are saving the networks after each epoch with
-  =model.save=
-  - Load with =keras.models.load_model=
+***                                                                   :BMCOL:
+   :PROPERTIES:
+   :BEAMER_col: .5
+   :END:
 
-** Training the GAN
+#+attr_latex: :width \textwidth
+[[file:figures/tpdne.jpg]]
 
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute
-  batch_size = 100
-  n_epochs = 10
-  print_every_nth_epoch = 50
-  x_tru_all = x_train.reshape(len(x_train), 28, 28, 1) / 256.
+***                                                                   :BMCOL:
+   :PROPERTIES:
+   :BEAMER_col: .5
+   :END:
 
-  zeros = np.array([0]*batch_size)
-  ones = np.array([1]*batch_size)
-  oneszeros = np.array([1]*batch_size + [0]*batch_size)
+- This is the first image I got when I visited [[https://www.thispersondoesnotexist.com/][_this person does not exist_]]
+- They've trained a GAN (technically, StyleGAN, an extension of the
+  GAN idea) on human portrait photos
+  - StyleGAN also allows them to control specific aspects of the
+    latent space (hair color, skin color, gender, etc.)
+  - Can see how powerful the results can be
+- Highly recommend watching the videos from nVidia on this (accessible through the link)
 
-  losses_d = []
-  losses_g = []
-  for epoch in range(n_epochs):
-      print ("Epoch", epoch)
-      discr.save("/discr-"+str(epoch))
-      generate.save("/generate-"+str(epoch))
-      for i in range(0, len(x_train), batch_size):
-	  x_gen = generate.predict(np.random.uniform(0, 1, (batch_size, nfeatures)))
-	  x_tru = x_tru_all[i:i+batch_size]
-	  # Train the discriminator by taking example MNIST and generator-produced images
-	  discr.trainable=True
-	  loss_d = discr.train_on_batch(np.concatenate([x_tru, x_gen], axis=0), oneszeros)
-	  # Now, turn discriminator training off, so we can train the generator
-	  discr.trainable=False
-	  loss_g = gen_discr.train_on_batch(np.random.uniform(0, 1, (batch_size, nfeatures)), ones)
-	  if i % (print_every_nth_epoch*batch_size) == 0:
-	      print (i / batch_size, "discr", loss_d, "--", "gen", loss_g[0], "( acc.", loss_g[1], ")")
-	  losses_g.append(loss_g)
-	  losses_d.append(loss_d)
-#+END_SRC
+** CaloGAN
 
-** Checking results
+#+attr_latex: :width .495\textwidth
+[[file:figures/calogan.jpg]]
+#+attr_latex: :width .495\textwidth
+[[file:figures/lar.png]]
 
-- Lets see how we did, lets just generate a bunch of images
+- In Particle Physics, applications to simulation
+- CaloGAN is training a GAN to simulate the calorimeter response to
+  particles
+  - This is an extremely time consuming step in simulation and
+    important for HL-LHC which will have huge pile-up
+- See also: JongSuk's project ;)
 
-#+LATEX: \scriptsize
-#+BEGIN_SRC python :session mltute :exports both :results file
-nim = 25
-pred = generate.predict(np.random.uniform(0, 1, (nim,nfeatures)))
-
-plt.clf()
-for i in range(nim):
-    plt.subplot(np.sqrt(nim),np.sqrt(nim),i+1)
-    plt.imshow(pred[i,:,:,0], cmap='gray')
-
-pred[0].shape, np.average(pred[0])
-F = plt.gcf(); F.set_size_inches((10,10)); plt.savefig("genimg_after.png"); "genimg_after.png"
-#+END_SRC
-
-#+LATEX: \centering
-#+ATTR_LATEX: :width .75\textwidth
-[[file:figures/genimg_after40.png]]
-
-** Good images
-
-- Whats the "best" being produced by the GAN?
-- Only accept above 0.9 from discriminator
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-nim = 25
-target = .9
-
-plt.clf()
-for i in range(nim):
-    best = 0; pred=None
-    while best < target:
-        pred = generate.predict(np.random.uniform(0, 1, (1,nfeatures)))
-        best = discr.predict(pred)[0][0]
-    plt.subplot(np.sqrt(nim),np.sqrt(nim),i+1)
-    plt.imshow(pred[0,:,:,0], cmap='gray')
-
-pred[0].shape, np.average(pred[0])
-F = plt.gcf(); F.set_size_inches((10,10)); plt.savefig("genimg40_best.9.png"); "genimg40_best.9.png"
-#+END_SRC
-
-** Good Images
-
-#+LATEX: \centering
-#+ATTR_LATEX: :width .75\textwidth
-[[file:figures/genimg40_best.9.png]]
-
-** Bad images
-
-- Whats the "worst" being produced by the GAN?
-- Only accept below 0.1 from discriminator
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-nim = 25
-target = .1
-
-plt.clf()
-for i in range(nim):
-    best = 1; pred=None
-    while best > target:
-        pred = generate.predict(np.random.uniform(0, 1, (1,nfeatures)))
-        best = discr.predict(pred)[0][0]
-    plt.subplot(np.sqrt(nim),np.sqrt(nim),i+1)
-    plt.imshow(pred[0,:,:,0], cmap='gray')
-
-pred[0].shape, np.average(pred[0])
-F = plt.gcf(); F.set_size_inches((10,10)); plt.savefig("genimg40_worst.1.png"); "genimg40_worst.1.png"
-#+END_SRC
-
-** Bad images
-
-#+LATEX: \centering
-#+ATTR_LATEX: :width .75\textwidth
-[[file:figures/genimg40_worst.1.png]]
-
-** Extensions
-
-- Try different networks, what works well, what fails badly?
-- Add another set of inputs hot-one encoding the number you want to
-  generate,
-  - The discriminator will need to say which number it believes its
-    seeing as well as how likely it is to be real
-  - The generator will need to train with the number output as a loss
-    also
-- Some further ideas on the next pages, work in progress code :-)
-
-** Train requiring GAN to also output the correct number
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-nfeatures = 100
-
-generate = Sequential()
-generate.add(Dense(1024, input_dim=(nfeatures + 10)))
-generate.add(Activation('tanh'))
-generate.add(Dense(128*7*7))
-generate.add(BatchNormalization())
-generate.add(Activation('tanh'))
-generate.add(Reshape((7, 7, 128)))
-generate.add(UpSampling2D(size=(2,2)))
-generate.add(Conv2D(64, (5,5), padding='same'))
-generate.add(Activation('tanh'))
-generate.add(UpSampling2D(size=(2,2)))
-generate.add(Conv2D(1, (5, 5), padding='same'))
-generate.add(Activation('sigmoid'))
-generate.compile(loss="binary_crossentropy", optimizer="SGD")
-
-#+END_SRC
-
-** Create the Discriminator
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-
-discr = Sequential()
-discr.add(Conv2D(128, (5,5), input_shape=(28,28,1), padding='same'))
-discr.add(Activation('relu'))
-discr.add(MaxPooling2D((2,2)))
-discr.add(Conv2D(256, (5,5)))
-discr.add(Activation('relu'))
-discr.add(MaxPooling2D((2,2)))
-discr.add(Dropout(0.5))
-discr.add(Flatten())
-discr.add(Dense(1024))
-discr.add(Activation('tanh'))
-discr.add(Dense(11))  # 1 for real or fake, then 10 for which number
-discr.add(Activation('sigmoid'))
-discr.compile(loss='categorical_crossentropy', optimizer=SGD(lr=0.0005, momentum=0.9, nesterov=True),
-              metrics=['accuracy'])
-
-#+END_SRC
-
-** Create the combined network
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-
-gen_discr = Sequential()
-gen_discr.add(generate)
-discr.trainable = False
-gen_discr.add(discr)
-gen_discr.compile(loss='categorical_crossentropy', optimizer=SGD(lr=0.0005, momentum=0.9, nesterov=True),
-                  # optimizer='adam',
-                  metrics=['accuracy'])
-discr.trainable = True
-
-batch_size = 100
-n_epochs = 50
-print_every_nth_epoch = 50
-x_tru_all = x_train.reshape(len(x_train), 28, 28, 1) / 256.
-
-zeros = np.array([0]*batch_size)
-ones = np.array([1]*batch_size)
-oneszeros = np.array([1]*batch_size + [0]*batch_size)
-#+END_SRC
-
-** Pre-train the discriminator on the (untrained) generator output and real MNIST
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-# pre train the gan to be able to distinguish numbers
-pre_losses_d = []
-for epoch in range(5):
-    print ("Epoch", epoch)
-    for i in range(0, len(x_train), batch_size):
-        one_hot_gen = np.eye(10)[np.random.random_integers(0, 9, size=(batch_size,))]
-        x_inp = np.concatenate([np.random.uniform(0, 1, (batch_size, nfeatures)), one_hot_gen], axis=1)
-        x_gen = generate.predict(x_inp)
-        x_tru = x_tru_all[i:i+batch_size]
-        y_tru = y_train_enc[i:i+batch_size]
-        discr.trainable = True
-        for_d_tru = np.concatenate([np.zeros((batch_size,1)), y_tru], axis=1)
-        for_d_gen = np.concatenate([np.ones((batch_size,1)), np.zeros((batch_size,10))], axis=1)
-        loss_d = discr.train_on_batch(np.concatenate([x_tru, x_gen], axis=0), 
-	                              np.concatenate([for_d_tru, for_d_gen], axis=0))
-        if i % (print_every_nth_epoch*batch_size) == 0:
-            print (i / batch_size, "discr", loss_d)
-        pre_losses_d.append(loss_d)
-
-loss, accuracy = discr.evaluate(x_test_dense, 
-                                np.concatenate([np.zeros((len(y_test_enc),1)), y_test_enc], axis=1), verbose=0)
-print("Loss={:.3f}\nAccuracy = {:.3f}".format(loss, accuracy))
-
-#+END_SRC
-
-** Train the generator and discriminator together
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports both :results file
-losses_d = []
-losses_g = []
-for epoch in range(n_epochs):
-    print ("Epoch", epoch)
-    discr.save("discr-num-"+str(epoch))
-    generate.save("generate-num-"+str(epoch))
-    for i in range(0, len(x_train), batch_size):
-        one_hot_gen = np.eye(10)[np.random.random_integers(0, 9, size=(batch_size,))]
-        x_inp = np.concatenate([np.random.uniform(0, 1, (batch_size, nfeatures)), one_hot_gen], axis=1)
-        x_gen = generate.predict(x_inp)
-        x_tru = x_tru_all[i:i+batch_size]
-        y_tru = y_train_enc[i:i+batch_size]
-        discr.trainable = True
-        for_d_tru = np.concatenate([np.zeros((batch_size,1)), y_tru], axis=1)
-        for_d_gen = np.concatenate([np.ones((batch_size,1)), np.zeros((batch_size,10))], axis=1)
-        loss_d = discr.train_on_batch(np.concatenate([x_tru, x_gen], axis=0), 
-	                              np.concatenate([for_d_tru, for_d_gen], axis=0))
-        discr.trainable=False
-        for_g = np.concatenate([np.zeros((batch_size,1)), one_hot_gen], axis=1)
-        new_inp_g = np.concatenate([np.random.uniform(0, 1, (batch_size, nfeatures)), one_hot_gen], axis=1)
-        loss_g = gen_discr.train_on_batch(new_inp_g, for_g)
-        if i % (print_every_nth_epoch*batch_size) == 0:
-            print (i / batch_size, "discr", loss_d, "--", "gen", loss_g[0], "( acc.", loss_g[1], ")")
-        losses_g.append(loss_g)
-        losses_d.append(loss_d)
-
-print ("done")
-#+END_SRC
-
-** Check the output of the labelled GAN
-
-#+LATEX: \tiny
-#+BEGIN_SRC python :session mltute
-# generate = tf.keras.models.load_model('generate-num-41')
-
-nim = 25
-numb = 1
-pred = generate.predict(np.concatenate([np.random.uniform(0, 1, (nim,nfeatures)), np.eye(10)[[numb,]*nim] ], axis=1))
-
-plt.clf()
-for i in range(nim):
-    plt.subplot(np.sqrt(nim),np.sqrt(nim),i+1)
-    plt.imshow(pred[i,:,:,0], cmap='gray')
-
-pred[0].shape, np.average(pred[0])
-F = plt.gcf(); F.set_size_inches((10,10)); plt.savefig("gen-num-img_after-%d.png" % numb); "gen-num-img_after-%d.png" % numb
-#+END_SRC
-
-** Some examples from labelled GAN
-
-#+ATTR_LATEX: :width .5\textwidth
-[[file:figures/gen-num-img_after-4.png]]
-#+ATTR_LATEX: :width .5\textwidth
-[[file:figures/gen-num-img_after-5.png]]
+#+latex: \tiny
+https://github.com/hep-lbdl/CaloGAN
+https://indico.cern.ch/event/567550/contributions/2629438/attachments/1510662/2355700/ACAT_GAN.pdf
 
