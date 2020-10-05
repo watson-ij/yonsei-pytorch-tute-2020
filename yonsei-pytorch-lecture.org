@@ -26,7 +26,7 @@
 #+LATEX: \institute[USeoul]{University of Seoul}
 #+LATEX: \author[I.J. Watson]{\underline{Ian J. Watson} \\ ian.james.watson@cern.ch}
 #+LATEX: \date[Yonsei Uni 8.10.2020]{Yonsei University \\ October 8, 2020} 
-#+LATEX: \title[Deep Learning Hands-on]{Introduction to Deep Learning}
+#+LATEX: \title[Deep Learning with PyTorch]{Introduction to Deep Learning with PyTorch}
 #+LATEX: \titlegraphic{\includegraphics[height=.2\textheight]{../../talks-2019/20190715-KAIST-QCD/CMSlogo_rainbow.png} \hspace{5mm} \includegraphics[height=.14\textheight]{../../course/2018-stats-for-pp/KRF_logo_PNG.png} \hspace{5mm} \includegraphics[height=.2\textheight]{../../course/2017-stats-for-pp/logo/UOS_emblem.png}}
 #+LATEX: \maketitle
 
@@ -85,7 +85,7 @@ _[[https://git.io/yonsei-slides-2020]]_
     https://colab.research.google.com
 - If you don't have a google account, please sign up during this
   lecture (or, check the hands-on to setup your computer if you're
-  comfortable with python, pip, etc.)
+  comfortable)
 
 * Introduction: Machine Learning, Deep Learning
 
@@ -786,7 +786,6 @@ https://arxiv.org/abs/1406.2661
   particles
   - This is an extremely time consuming step in simulation and
     important for HL-LHC which will have huge pile-up
-- See also: JongSuk's project ;)
 
 #+latex: \tiny
 https://github.com/hep-lbdl/CaloGAN
