@@ -1,8 +1,8 @@
 # ML tutorial for Yonsei University, October 8, 2020
 
 To view the tutorial material online visit:
-- [[https://github.com/watson-ij/yonsei-pytorch-tute-2020/yonsei-pytorch-lecture.pdf][Lecture PDF]]
-- [[https://github.com/watson-ij/yonsei-pytorch-tute-2020/yonsei-pytorch-handson.ipynb][Hand's on session notebook]]
+- [[https://github.com/watson-ij/yonsei-pytorch-tute-2020/blob/master/yonsei-pytorch-lecture.pdf][Lecture PDF]]
+- [[https://github.com/watson-ij/yonsei-pytorch-tute-2020/blob/master/yonsei-pytorch-handson.ipynb][Hand's on session notebook]]
 
 I also have an older version which uses Keras, if you are more
 interested in keras, you can [[https://github.com/watson-ij/knu-keras-tute-2019/blob/master/20190925-mltute-iwatson.org][view the slides here]].
