@@ -3,6 +3,7 @@
 #+DATE:
 # Below property stops org-babel from running code on export
 #+PROPERTY: header-args    :eval never-export :tangle yes
+#+PROPERTY: header-args jupyter-python :session deep-torch :eval never-export :exports both :async yes
 #+startup: beamer
 #+LaTeX_CLASS: beamer
 #+LaTeX_CLASS_OPTIONS: [presentation,xcolor=dvipsnames]
@@ -79,11 +80,11 @@ jupyter notebook
 #+END_SRC
 
 For a GPU-capable version of pytorch (CUDA, which means you need an
-nVidia card), but check
+nVidia card), check
 
 https://pytorch.org/get-started/locally/
 
-- Now, let's setup a new workspace
+Now, let's setup a new workspace
 
 ** Google Colab / Jupyter Basic Usage
 
@@ -95,26 +96,53 @@ https://pytorch.org/get-started/locally/
   - Basic jupyter usage
 
 #+LATEX: \tiny
-#+BEGIN_SRC python
+#+BEGIN_SRC jupyter-python
 !ls # execute external commands
+#+END_SRC
 
-#+END_SRC
-#+BEGIN_SRC python
+#+RESULTS:
+: colab_instructions		yonsei-pytorch-handson.org
+: figures				yonsei-pytorch-lecture.org
+: _minted-yonsei-pytorch-lecture	yonsei-pytorch-lecture.pdf
+: README.org			yonsei-pytorch-lecture.tex
+: yonsei-pytorch-handson.ipynb
+
+#+BEGIN_SRC jupyter-python
 import os
-?os # help at your fingertips
+ # help at your fingertips
+?os
 #+END_SRC
-#+BEGIN_SRC python
-pi = 3.14159 # interpreter persists over cells
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python
+pi = 3.14159 # variables persists over cells
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python
 pi*2
 #+END_SRC
-#+BEGIN_SRC python
+
+#+RESULTS:
+: 6.28318
+
+#+BEGIN_SRC jupyter-python
 def area(radius):
     return pi*radius**2
 #+END_SRC
-#+BEGIN_SRC python
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python
 area(1)
 #+END_SRC
-#+BEGIN_SRC python
+
+#+RESULTS:
+: 3.14159
+
+#+BEGIN_SRC jupyter-python
 # inline plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -125,23 +153,19 @@ plt.plot(x, y)
 plt.show()
 #+END_SRC
 
-** Keras
+#+RESULTS:
+[[file:./.ob-jupyter/9a9d70fbcad8c81a21afef4b1dc6336e2331925f.png]]
+
+** PyTorch
 
 #+ATTR_LATEX: :width .25\textwidth
-[[file:keras-logo-small-wb.png]]
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .25\textwidth
-[[file:tensorflow-logo.png]]
+[[file:figures/pytorch.jpeg]]
 
-- Deep learning framework built by Google engineer François Chollet
-- High-level interface built allowing eg Theano or Tensorflow as a backend
-  - Has been accepted into mainline Tensorflow, so always accessible there
+- Deep learning framework based on Torch, a library for the Lua language
 - Library written in python, user-friendly interface
+- API is similar to numpy, can write straightforward python (cf. tensorflow)
 - Easy to get started building networks
-- Highly modular and easily expandable
-  - Can drop down into the underlying library when complex/bespoke operations
-    are needed
-- Quickly build and train serious models
+- Quickly build and train serious models, easy to experiment
 
 ** imports
 
@@ -153,33 +177,22 @@ plt.show()
     :BEAMER_col: .5
     :END:
 #+LATEX: \tiny
-#+BEGIN_SRC python :session mltute :exports code :results none
-import h5py
+#+BEGIN_SRC jupyter-python
+# import h5py
 import matplotlib
 # matplotlib.use("AGG")  # To batch graphics
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
-from sklearn.model_selection import train_test_split
-import sklearn
+# from sklearn.model_selection import train_test_split
+# import sklearn
 import numpy as np
-import tensorflow as tf
-
-keras = tf.keras
-Sequential = keras.Sequential
-Activation = keras.layers.Activation
-Dense = keras.layers.Dense
-LeakyReLU = keras.layers.LeakyReLU
-BatchNormalization = keras.layers.BatchNormalization
-Reshape = keras.layers.Reshape
-UpSampling2D = keras.layers.UpSampling2D
-Dropout = keras.layers.Dropout
-Conv2D = keras.layers.Conv2D
-MaxPooling2D = keras.layers.MaxPooling2D
-Flatten = keras.layers.Flatten
-SGD = keras.optimizers.SGD
-mnist = keras.datasets.mnist
+import torch as th # n.b. this is somewhat non-standard
+import torch.nn as nn
+import torch.optim as optim
 #+END_SRC
+
+#+RESULTS:
 
 * NN: Fisher's Irises
 ** Overarching Idea of (Supervised) Maching Learning
@@ -198,7 +211,7 @@ mnist = keras.datasets.mnist
     :END:
 
 #+ATTR_LATEX: :width \textwidth
-[[file:iris_petal_sepal.png]]
+[[file:figures/iris_petal_sepal.png]]
 
 ***                                                                   :BMCOL:
     :PROPERTIES:
@@ -220,7 +233,7 @@ seaborn pacakge, which also lets us create plots showing the
 correlations between the variables.
 
 #+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :results value :exports both
+#+BEGIN_SRC jupyter-python :display plain
 iris = sns.load_dataset("iris")
 iris.head()
 #+END_SRC
@@ -233,24 +246,6 @@ iris.head()
 : 3           4.6          3.1           1.5          0.2  setosa
 : 4           5.0          3.6           1.4          0.2  setosa
 
-# #+LATEX: \small
-# In Kaggle, add the iris json dataset, then load in pands
-
-# #+LATEX: \footnotesize
-# #+BEGIN_SRC python :session mltute :results value :exports both
-# import pandas as pd
-# iris = pd.read_json("../input/iris.json")
-# iris.head()
-# #+END_SRC
-
-# #+RESULTS:
-# :    sepal_length  sepal_width  petal_length  petal_width species
-# : 0           5.1          3.5           1.4          0.2  setosa
-# : 1           4.9          3.0           1.4          0.2  setosa
-# : 2           4.7          3.2           1.3          0.2  setosa
-# : 3           4.6          3.1           1.5          0.2  setosa
-# : 4           5.0          3.6           1.4          0.2  setosa
-
 ** Iris Variables
 
 #+LATEX: \footnotesize
@@ -259,20 +254,20 @@ separable by the petal length and width, but versicolor and virginica
 are a little tricky.
 
 #+LATEX: \scriptsize
-#+BEGIN_SRC python :session mltute :results file :exports both
+#+BEGIN_SRC jupyter-python
 plot = sns.pairplot(iris, hue="species")
-plot.savefig('iris.png'); 'iris.png'
+plot.savefig('iris.png')
 #+END_SRC
 
 #+ATTR_LATEX: :width .5\textwidth
 #+RESULTS:
-[[file:iris.png]]
+[[file:figures/iris.png]]
 
 ** The Logistic Function and Logistic Regression
 
 \centering
 #+ATTR_LATEX: :width .4\textwidth
-[[file:logistic.pdf]]
+[[file:figures/logistic.pdf]]
 
 - The logistic (or sigmoid) function is defined as \(f(x) = \frac{1}{1+e^{-x}}\)
   - Looks like a classic "turn-on" curve
@@ -284,163 +279,11 @@ plot.savefig('iris.png'); 'iris.png'
   - Thus, we need to transform the input variables into 1D, then pass through the logistic function
 - This is a simple classification technique called /logistic regression/
 
-** Some very simple examples for simple logistic regression
-
-   #+begin_export latex
-\includegraphics<1>[width=.33\textwidth]{AND.png}
-\includegraphics<1>[width=.33\textwidth]{OR.png}
-\includegraphics<2>[width=.33\textwidth]{AND_cut.png}
-\includegraphics<2>[width=.33\textwidth]{OR_cut.png}   
-\includegraphics<3>[width=.33\textwidth]{AND_turnon.png}
-\includegraphics<3>[width=.33\textwidth]{OR_turnon.png}   
-   #+end_export
-
-- Let's think about approximating some simple binary functions
-- OR and AND gates
-  - OR is 0 (red) if both input are 0, 1 (blue) otherwise
-  - AND is 1 if both inputs are 1, 0 otherwise
-- Can we find logistic function approximations for this?
-  - That is, \(f(x_1, x_2)\) returns approximately 1 or 0 at the indicated points \pause
-- Yes! Take the projection perpendicular to the line \pause
-- and have the logistic turn on at the line (in the 2D plane the
-  logistic function will turn on as a "wave-front" along the black
-  line shown)
-  - e.g. \(f(x_1, x_2) = \sigma(2 x_1 + 2 x_2 - 1)\) for OR, \(f(x_1, x_2) = \sigma(2 x_1 + 2 x_2 - 3)\) for AND [\sigma is our logistic function]
-
-** Very simple example with issues for Logistic Regression
-
-#+begin_export latex
-\includegraphics[width=.33\textwidth]{XOR.png}
-#+end_export
-
-- Now consider the XOR gate: 1 if both inputs are the same, 0 otherwise
-- The XOR gate can't be generated with a logistic function!
-- Try it: no matter what line you draw, can't draw a logistic function
-  that turns on only the blue!
-
-** How to Fix: more logistic curves!
-
-#+attr_latex: :width .5\textwidth
-[[file:XOR_turnon.png]]
-
-- Can fix by having 2 turn-on curves, one turning on either of the
-  blue points, then summing the result
-- \(f(x_1, x_2) = \) [[color:green][\(\sigma(2 x_1 + 2 x_2 - 1)\)]] \(+\) [[color:magenta][\(\sigma(- 2 x_1 - 2 x_2 + 1)\)]]
-
-** The Feed-Forward Neural Network
-:PROPERTIES:
-:BEAMER_OPT: fragile
-:END:
-
-#+begin_export latex
-\centering
-\begin{neuralnetwork}[height=3]
-\newcommand{\xthefirst}[2]{$x_{#2}$}
-\newcommand{\y}[2]{$y$}
-\newcommand{\hfirst}[2]{\small $h_#2$}
-\newcommand{\hsecond}[2]{\small $h^{(2)}_#1$}
-\inputlayer[count=2, bias=false, title=Input\\layer, text=\xthefirst]
-\hiddenlayer[count=2, bias=false, title=Hidden\\layer, text=\hfirst] \linklayers
-% \hiddenlayer[count=3, bias=false, title=Hidden\\layer 2, text=\hsecond] \linklayers
-\outputlayer[count=1, title=Output\\layer, text=\y] \linklayers
-\end{neuralnetwork}
-#+end_export
-
-- Consider the structure of what we just made
-  - \(y = f(x_1, x_2) = \sigma(-1 + 2 x_1 + 2 x_2) + \sigma(1 - 2 x_1 - 2 x_2)\)
-- Decompose the function into:
-  - [[color:green][the /input layer/ of \(\hat{x}\)]],
-  - [[color:blue][the /hidden layer/ which calculates \(h_i = \beta_i
-    \cdot x\) then passes if through the /activation function/ \sigma,
-    (called "sigmoid" in NN terms)]]
-    - There is an extra \(\beta_0\), called the /bias/, which controls
-      how big the input into the node must be to activate; \sigma is
-      implicit in the diagram
-  - [[color:red][the /output layer/ which sums the results of the hidden layer and gives \(y\)]]
-    - \(y = 0 + 1 \cdot \sigma(h_1) + 1 \cdot \sigma(h_2)\)
-# , \(h_1 = 2 x_1 + 2 x_2 - 1\), \(h_2 = - 2 x_1 - 2 x_2 + 1\)
-# - The logistic function (when in a NN its called "sigmoid") is our "activation function"
-
-** Feed-Forward Neural Network
-:PROPERTIES:
-:BEAMER_OPT: fragile
-:END:
-
-#+begin_export latex
-
-\centering
-\begin{neuralnetwork}[height=5]
- \newcommand{\x}[2]{$x_#2$}
- \newcommand{\y}[2]{$y_#2$}
- \newcommand{\hfirst}[2]{\small $h_#2$}
- \inputlayer[count=3, bias=false, title=Input\\layer, text=\x]
- \hiddenlayer[count=5, bias=false, title=Hidden\\layer, text=\hfirst] \linklayers
-% \hiddenlayer[count=3, bias=false, title=Hidden\\layer 2, text=\hsecond] \linklayers
- \outputlayer[count=3, title=Output\\layer, text=\y] \linklayers
-\end{neuralnetwork}
-#+end_export
-
-- In general, we could have several input variables, and output variables
-- In the case of classification, we would usually have a final
-  /softmax/ applied to \(\hat{y}\), but could use any /activation/ \(\varphi\) here also
-  - /softmax/ normalizes the output layer so it sums to 1: $f_k(x) = \frac{e^{-y_k}}{\sum_i e^{-y_i}}$ 
-
-** Feed-Forward Neural Network
-:PROPERTIES:
-:BEAMER_OPT: fragile
-:END:
-
-#+begin_export latex
-
-\centering
-\begin{neuralnetwork}[height=5]
- \newcommand{\x}[2]{$x_#2$}
- \newcommand{\y}[2]{$y_#2$}
- \newcommand{\hfirst}[2]{\small $h^{1}_#2$}
- \newcommand{\hsecond}[2]{\small $h^{2}_#2$}
- \inputlayer[count=3, bias=false, title=Input\\layer, text=\x]
- \hiddenlayer[count=4, bias=false, title=Hidden\\layer 1, text=\hfirst] \linklayers
- \hiddenlayer[count=5, bias=false, title=Hidden\\layer 2, text=\hsecond] \linklayers
- \outputlayer[count=3, title=Output\\layer, text=\y] \linklayers
-\end{neuralnetwork}
-#+end_export
-
-- We can even have several hidden layers
-  - The previous layer acts the same as an /input layer/ to the next
-    layer
-- We call each node in the network a /neuron/
-- The deep learning algorithms we will see later are just variations
-  on this theme, using more complicated transformations
-
-** Universal Approximation Thereom
-
-\small
-Let \(\varphi :\mathbb {R} \to \mathbb {R}\) be a nonconstant,
-bounded, and continuous function. Let \(I_{m}\) denote the
-\(m\)-dimensional unit hypercube \([0,1]^{m}\). The space of
-real-valued continuous functions on \(I_{m}\) is denoted by
-\(C(I_{m})\). Then, given any \(\varepsilon >0\) and any function
-\(f\in C(I_{m})\), there exist an integer \(N\), real constants
-\(v_{i},b_{i}\in \mathbb {R}\) and real vectors \(w_{i}\in \mathbb {R}
-^{m}\) for \(i=1,\ldots ,N\) such that we may define:
-\[F(x)=\sum _{i=1}^{N}v_{i}\varphi \left(w_{i}^{T}x+b_{i}\right)\]
-as an approximate realization of the function \(f\); that is,
-\[|F(x)-f(x)|<\varepsilon\]
-for all \(x\in I_{m}\). In other words, functions of the form \(F(x)\) are dense in \(C(I_{m})\).
-
-This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {R} ^{m}\). 
-
-- In brief: with a hidden layer (of enough nodes), any (sensible)
-  function \(f : \mathbb{R}^m \to \mathbb{R}\) can be approximated by
-  a feed-forward NN
-  - Any (sensible) activation \(\varphi\) can work, not just \sigma
-- There is a simple, graphical proof for those who are interested: _[[http://neuralnetworksanddeeplearning.com/chap4.html]]_
-
 ** Neural Networks Overview
 
 #+LATEX: \centering
 #+ATTR_LATEX: :width .5\textwidth
-[[file:neural_net.jpeg]]
+[[file:figures/neural_net.jpeg]]
 
 - Example shown: input vector $\vec{x}$, goes through
   $\vec{y}_{hidden} = W\vec{x} + \vec{b}$, then $\vec{y}_{output} =
@@ -465,21 +308,40 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
 - Propagate changes based on the gradient $\Delta w_i = -\eta \frac{\partial f}{\partial w_i}$
 - For more on how backpropagation works: _[[http://neuralnetworksanddeeplearning.com/chap2.html]]_
 
-** Keras Networks
+** PyTorch Networks
 
-In order to classify the irises, we'll build a simple network in Keras.
+In order to classify the irises, we'll build a simple network in PyTorch.
 
-- The basic network type in Keras is the =Sequential= model. 
-- The =Sequential= model builds a neural network by stacking layers 
-  - Keras also has a =Graph= model that allows arbitrary connections
-- It builds up like lego, adding one layer on top of another and 
-  connecting between the layers
-  - Keras comes with a menagerie of pre-built layers for you to use.
-- Interface to/from the model with numpy arrays
+- Helper functions to easily build neural networks are provided by the
+  =torch.nn= module (usually imported as =nn=)
+- In PyTorch, neural networks are made as classes deriving from
+  =nn.Module=
+- You need to provide an =__init__= method setting up the parameters
+  (i.e. attach them to =self=), and a =forward(x)= method which
+  returns the network output for the input =x=
+  - PyTorch keeps track of the parameters and the *computational
+    graph* which is needed to efficiently perform backpropagation
+- Interface to/from the model with the PyTorch =Tensor= class
+  (essentially a numpy array which can be interfaced with PyTorch's
+  backprop and can be placed on the GPU)
+  - In fact, =Tensor.numpy()= will give you back a regular numpy array
 
 #+LATEX: \centering
 #+ATTR_LATEX: :width .5\textwidth
-[[file:nn-1a.png]]
+[[file:figures/nn-1a.png]]
+
+
+#+begin_src jupyter-python
+arr = np.array([1.,2.,3.])
+print(th.Tensor(arr)) # build from a numpy array
+print(th.Tensor([1.,2.,3.])) # or a python array
+print(th.linspace(1., 3., 3)) # or a helper function
+#+end_src
+
+#+RESULTS:
+: tensor([1., 2., 3.])
+: tensor([1., 2., 3.])
+: tensor([1., 2., 3.])
 
 ** Model
 
@@ -500,139 +362,182 @@ In order to classify the irises, we'll build a simple network in Keras.
 ** Build a model: Python code
 
 #+LATEX: \footnotesize \vspace{-2mm}
-#+BEGIN_SRC python :session mltute :exports both  :results output
+#+BEGIN_SRC jupyter-python
+
+class MyNet(nn.Module):
+    def __init__(self):
+        # setup with nn.Module's initializer
+        super(MyNet, self).__init__()
+        # Linear is a helper creating a fully-connected layer
+        # (i.e. typical feedforward neural network)
+        self.fc1 = nn.Linear(4,128) # fc=fully-connected
+        self.fc2 = nn.Linear(128,3) # 3 possible outputs
+    def forward(self, x):
+        # Typical pattern in torch code, reuse the name x for
+        # successive layers
+        x = th.sigmoid(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
 # Build a model
-model = Sequential()
-
-model.add(Dense(128, input_shape=(4,)))
-model.add(Activation('sigmoid'))
-# model.add(Dense(128))
-# model.add(Activation('sigmoid'))
-model.add(Dense(3))
-model.add(Activation('softmax'))
-
-model.compile(optimizer='adam', loss='categorical_crossentropy', 
-              metrics=['accuracy'])
-model.summary()
+net = MyNet()
+net
 #+END_SRC
 
-#+LATEX: \tiny
 #+RESULTS:
-#+begin_example
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #   
-=================================================================
-dense_1 (Dense)              (None, 128)               640       
-_________________________________________________________________
-activation_1 (Activation)    (None, 128)               0         
-_________________________________________________________________
-dense_2 (Dense)              (None, 3)                 387       
-_________________________________________________________________
-activation_2 (Activation)    (None, 3)                 0         
-=================================================================
-Total params: 1,027
-Trainable params: 1,027
-Non-trainable params: 0
-_________________________________________________________________
-#+end_example
+: MyNet(
+:   (fc1): Linear(in_features=4, out_features=128, bias=True)
+:   (fc2): Linear(in_features=128, out_features=3, bias=True)
+: )
 
-** More on model building
+- Simply use the regular torch functions available in 
+- Notice, we didn't specify a softmax activation in the final layer
+  - We'll see why when we get to training
+- To use, simply pass in an input tensor
 
-- When =add='ing layers, keras takes care of input/output size details
-  - Except for the input layer, which must be specified
-  - We explicitly gave the network =(4,)= for our 4 input variables
-- The final layer we make size 3 after a softmax activiation
-  - This will output the network probability for each of the potential
-    iris classes as a numpy array 
-    =(nsamples, (= $p_{setosa}$, $p_{virginica}$, $p_{versicolor}$ =))=
-- We =compile= the model with an optimizer and loss function
-  - The loss function will be minimized during the training phase
-- We can give auxilliary =metrics= which will be calculated with the loss
-- Keras automatically takes care of calculating derivatives through the network for the backprop phase
-- We could be more explicit in creating the functions if we want more control over hyperparameters:
+#+begin_src jupyter-python
+input = th.tensor([1.,2.,3.,4.])
+net(input)
+#+end_src
 
-
-#+LATEX:  \scriptsize
-#+BEGIN_SRC python
-model.compile(loss=keras.losses.mean_squared_error, 
-              optimizer=keras.optimizers.SGD(lr=0.0005, momentum=0.9,
-                                             nesterov=True))
-#+END_SRC
-
-
-** More on model building
-
-Here we used the adam optimizer which automatically updates the step
-sizes used for parameter optimization, with a categorical
-cross-entropy loss, which measures $-\sum_{i} t_i\log{p_i}$ where
-$t_i$ is 1 for the true label and $p_i$ is the probability of the
-\(i\)th label assigned by the model. As the model assigns higher
-probability to the correct label, the cross-entropy goes to 0.
-
-- Other options to consider:
-  - Activation: /sigmoid/, /softmax/, /linear/, /tanh/, /relu/, \ldots
-  - Optimizer: /SGD/, /RMSprop/, /Adagrad/, /Adadelta/, /Adam/, \ldots
-  - Loss: /categorical_crossentropy/, /binary_crossentropy/, /mean_squared_error/, \ldots
-
-ReLU \hfill sigmoid \hfill tanh \hfill softplus
-
-#+ATTR_LATEX: :width .242\textwidth
-[[file:relu.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:sigmoid.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:tanh.png]] 
-#+LATEX: \hfill
-#+ATTR_LATEX: :width .242\textwidth
-[[file:softplus.png]]
- 
-** Model picture
-
-If pydot is installed we can also output a picture of the network
-
-\footnotesize
-#+BEGIN_SRC python :session mltute :results file :exports both
-keras.utils.plot_model(model, to_file='iris_model.png')
-#+END_SRC
-
-#+ATTR_LATEX: :width .24\textwidth
 #+RESULTS:
-[[file:iris_model.png]]
+: tensor([-0.0109, -0.5471, -0.4335], grad_fn=<AddBackward0>)
 
-** Training Code
+- Note that the network allows you to pass in several datapoints at
+  once, so you can use a tensor of dimension 1 more than the
+  dimension of a single datapoint
+- Here, we have a 1d tensor with 4 elements in the first dimension, so
+  we can pass a dimension 2 tensor in (the first dimension is the n-inputs dimension)
 
-#+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :exports both :results output
-# Split the variables to train, and the target
-variables = iris.values[:, :4]
-species = iris.values[:, 4]
+#+begin_src jupyter-python
+# Process two inputs, get back two outputs
+input = th.tensor([[1.,2.,3.,4.],
+                   [2.,3.,4.,5.]])
+net(input)
+#+end_src
 
-# One hot encode the species target
-smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
-species_enc = np.eye(3)[list(smap[s] for s in species)]
-
-# To show we are simply passing numpy arrays of the data
-print(variables[0], species[0], species_enc[0])
-
-train_X, test_X, train_y, test_y = \
-  train_test_split(variables, species_enc, train_size=0.8, random_state=0)
-model.fit(train_X, train_y, epochs=15, batch_size=1, verbose=1)
-#+END_SRC
-
-#+LATEX: \tiny
 #+RESULTS:
-#+begin_example
-[5.1 3.5 1.4 0.2] setosa [ 1.  0.  0.]
-Epoch 1/15
-120/120 [==============================] - 0s - loss: 0.2873 - acc: 0.9500     
+: tensor([[-0.0109, -0.5471, -0.4335],
+:         [ 0.0038, -0.5836, -0.4449]], grad_fn=<AddmmBackward>)
 
-...
+- To run on the GPU, we need to make sure all the parameters of the
+  network are placed on the GPU, and the inputs are placed on the GPU.
+  - We can use the =Tensor.cuda()= funcion which returns a GPU copy of the tensor
+  - We can also use =Tensor.to(dev)= with =dev =
+    th.device('cuda:0')= to specify a specific CUDA device, or have a
+    way to switch to cpu (=dev = th.device('cpu')=, could have an
+    if-clause choosing cuda if available or else CPU)
+- Similarly, we can put a cuda tensor back on the CPU with =Tensor.cpu()=
 
-Epoch 15/15
-120/120 [==============================] - 0s - loss: 0.1477 - acc: 0.9583
-#+end_example
+#+begin_src jupyter-python
+net = net.cuda() # put network on GPU 
+input = input.cuda() # and the input tensor
+net(input) # you should see the device is now displayed
+#+end_src
+
+#+RESULTS:
+: tensor([[-0.0109, -0.5471, -0.4335],
+:         [ 0.0038, -0.5836, -0.4449]], device='cuda:0', grad_fn=<AddmmBackward>)
+
+** Loss function
+
+- To train a network, we need a function to minimize, a /loss/ function
+- There are many loss functions built-in to pytorch, some useful ones:
+  - =BCELoss= : binary cross-entropy loss, for classifying a single
+    output for on-off/yes-no conditions, it returns -log(output) if
+    the result should be 1, -log(1-output) if the result should be 0
+    - This derives from a likelihood anaylsis of the binomial distribution
+  - =CrossEntropyLoss= : cross-entropy loss, for classifying into
+    multiple categories using a one-hot encoding scheme, \\
+    -log(softmax_output[correct position])
+  - =MSELoss= : mean-square error loss, useful for regression and
+    similar
+- They have the common form =loss_fn(prediction, true_values)=
+  - =prediction= is the network output for a batch, =true_values= are
+    the corresponding truth labels
+
+Lets start with an example of binary cross-entropy loss. Use when
+there's only 2 classes to classify. Here, we also show a quicker way
+of setting up a simple network using =Sequential= (should be familiar
+if you know Keras).
+
+#+begin_src jupyter-python
+# For simple networks just containing stacks of layers, one can use
+# the Sequential module instead, need explicit layers for the
+# activation in this case
+aNet = nn.Sequential(nn.Linear(2,4), nn.Sigmoid(), nn.Linear(4,1), nn.Sigmoid()).cuda()
+
+loss_fn = th.nn.BCELoss() # the losses live in torch.nn
+out = aNet(th.zeros(2).cuda()) # the net is on the GPU
+loss = loss_fn(out, th.tensor([1.]).cuda()) # one datapt
+print(loss.item(), -th.log(out).item()) # theres no magic
+#+end_src
+
+#+RESULTS:
+: 1.0108411312103271 1.0108411312103271
+
+For more than two outputs, we use cross-entropy loss. In pytorch, the
+loss function applies the softmax itself (so we don't need it in our
+network), and then applies the -log(p) function on the true values
+output [think of it like the -log of the networks probability for it
+to be the true value].
+
+#+begin_src jupyter-python
+loss_fn = th.nn.CrossEntropyLoss()
+# the net is on the GPU, here we create 3 inputs, each filled with zeros
+out = net(th.zeros(3,4).cuda())
+ # for CrossEntropyLoss, the true values should be the position of the real label
+print(loss_fn(out, th.tensor([0,1,2]).cuda()))
+# Note that the output is the *average* of the losses of all the input items
+#   this makes it easier to process a batch of inputs and run gradient descent
+#+end_src
+
+#+RESULTS:
+: tensor(1.1006, device='cuda:0', grad_fn=<NllLossBackward>)
+
+Just to be explicit of what CrossEntropyLoss means.
+- /softmax/ normalizes the output layer so it sums to 1: $f_k(x) = \frac{e^{-y_k}}{\sum_i e^{-y_i}}$
+- Cross-entropy loss is the -log(p) where p is the output of the softmax for the (known) true value
+  - We are in the fully-labelled paradigm for training
+
+#+begin_src jupyter-python
+out = net(th.zeros(1,4).cuda())
+# use item() to extract a single value from a tensor and return as a python float
+print("output of the loss_fn", loss_fn(out, th.tensor([0]).cuda()).item())
+# we softmax over the outputs (zeroth axis is the datapoints axis, first axis is the output axis)
+print(th.softmax(out,1))
+# The softmax output sums to 1, hence its like a "probability for each possible output"
+print(th.softmax(out,1).sum().item())
+# then cross entropy is the -log(p) where p is the true output, here
+# we pretend that we know the 0th category is the true category
+print(-th.log(th.softmax(out,1)[0,0]).item())
+#+end_src
+
+#+RESULTS:
+: output of the loss_fn 1.0241286754608154
+: tensor([[0.3591, 0.3335, 0.3074]], device='cuda:0', grad_fn=<SoftmaxBackward>)
+: 1.0
+: 1.0241286754608154
+
+The closer the output of the true value is to 1, the closer the
+CrossEntropyLoss is to 0. The closer it is to 0, the CrossEntropyLoss
+will exponentially approach -infinity. Hence, minimizing the
+CrossEntropyLoss is equivalent to maximizing the softmax output
+probability of the true value to 1, and true value softmax outputs
+close to 0 are exponentially penalized (its worse to be close to 0
+than it is to be a little bit further from 1).
+
+If you want to apply the softmax inside the network yourself, you can
+use =NLLLoss= instead of =CrossEntropyLoss=. The reason you wouldn't
+is that to get a "prediction" from an unknown datapoint after training
+the network, you can just take the position with the max of the
+network output, you don't need to calculate the (relatively expensive)
+softmax, which is just rescaling the values so they're all between 0
+and 1.
+
+=BCELoss= expects a value between 0 and 1, so you should apply
+=sigmoid= to the final layer in this case.
+
 
 ** Training
 
@@ -644,317 +549,727 @@ Epoch 15/15
 - We pass through the input data as a numpy array (nsamples, 4)
 - We pass the output as (nsamples, 3) where for each sample one
   of the positions is 1, corresponding to the correct class. 
-- We use the =np.eye= identity matrix creator to help us transform the raw species
-  information (which labels classes setosa, virginica, versicolor) to
-  the expected format
-  - Setosa = =(1, 0, 0)=
+- We transform the raw species information (which labels classes as
+  strings: "setosa", "virginica", "versicolor") to the expected format
+  - Setosa = should give =(1, 0, 0)=, i.e. 1 in the 0th position
   - Versicolor = =(0, 1, 0)=
   - Virginica = =(0, 0, 1)=
-- We fit the model to a labelled dataset simply by calling =fit= with
-  the dataset =train_X= and the true labels =train_y=
 
-** Evaluation
+#+begin_src jupyter-python
+variables = iris.values[:, :4]
+species = iris.values[:, 4]
 
-- After running the model, we can =evaluate= how well it works on the
-  labelled /test/ data we kept aside for /overfitting/ evaluation
-  purposes.
-  - Overfitting is when the model fits to the training set in a way
-    that doesn't generalize to unseen samples
-  - One usually also has a separate /validation/ set, use the /test/
-    set on a single model, choose a model you like, then check the
-    /hyperparameters/ didn't cause bias by checking the /validation/
+# One hot encode the species target
+smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
+species_enc = np.array(list(smap[s] for s in species))
 
-#+BEGIN_SRC python :session mltute :exports both :results output
-  # The evaluation passes out the overall loss, 
-  # as well as any other metrics you included 
-  # when compiling the model
-  loss, accuracy = model.evaluate(test_X, test_y, verbose=0)
-  print("Loss={:.2f}\nAccuracy = {:.2f}".format(loss, accuracy))
-#+END_SRC
+# To show we are simply passing numpy arrays of the data
+print(iris.iloc[0])
+print("----------")
+print(variables[0], ":", species[0], ":", species_enc[0])
+#+end_src
 
-#+LATEX: \scriptsize
 #+RESULTS:
-: Loss=0.11
-: Accuracy = 0.97
+: sepal_length       5.1
+: sepal_width        3.5
+: petal_length       1.4
+: petal_width        0.2
+: species         setosa
+: Name: 0, dtype: object
+: ----------
+: [5.1 3.5 1.4 0.2] : setosa : 0
 
-** Prediction
+** Training Loop
 
-- And we can ask the model to =predict= some unlabelled data
-  - For illustration, we just use our test data, and compare the true
-    label against the 'prediction'
-  - In the output, I stack the true answers (first rows), and the
-    prediction, which can basically be interpreted as the model's
-    probability for each category (second rows)
+- By default, there's no automatic training functions in PyTorch, you're expected to build it yourself
+  - This is different from, say, Keras, which gives you a 'fit' function
+- It does give you the tools to build the loop easily though
+- We will fit the model to a labelled dataset by creating a "training
+  loop"
+- We will pass a minibatch into the network, calculate the average
+  loss, the update the network based on minimizing that minibatch loss
+  - This is "Stochastic Gradient Descent", as opposed to full gradient
+    descent, which would calculate the average on the full dataset
+    before updating the network
+  - The trade off is that SGD only approximates the loss landscape for
+    each batch, while full GD requires much more computation for each update
+  - Also, you can argue that SGD should generalize better since its
+    harder to fit to the datapoints and easier to fit general features 
+    with the loss landscape constantly changing between updates
+- =loss.backward()= performs the backpropagation on the computational
+  graph, calculating the partial derivatives of the weights w.r.t. loss
+  - Allows the graph to be built up in possibly several steps before
+    computing, allowing for arbitrary flexibility
+- An optimizer keeps track of the gradients and can potentially
+  automatically set different learning rates for different parameters
+  - E.g. look up Adam, Adagrad, or RMSprop for instance
+  - We'll use the basic SGD optimizer here
+- The =torch.optim= module contains several optimizers, which take in
+  the network parameters and some options, and will keep track of the
+  gradients, and apply a gradient descent (or similar) =step= to the
+  network
+  - We use =zero_grad= to zero out the gradients: you can also run
+    several batches and then step the optimizer
+- =n_epochs= is the number of times through the complete dataset you will train for
+  - The more you train, the better the fit, but you need to be careful of overfitting
 
-#+BEGIN_SRC python :session mltute :exports both :results output
-pred_y = model.predict(test_X)
-print(np.stack([test_y, pred_y], axis=1)[:10])
-#+END_SRC
+#+begin_src jupyter-python
+# By default, pytorch operates on floats, not doubles
+X, Y = th.tensor(variables.astype('float32')), th.tensor(species_enc)
+# A basic stochastic gradient descent optimizer
+n_epochs, minibatch_size = 5, 16
+optimizer = optim.SGD(net.parameters(), lr=0.1)
+loss_fn = th.nn.CrossEntropyLoss()
+optimizer.zero_grad()
+for _ in range(n_epochs):
+  for idx in range(0,len(X),minibatch_size):
+    optimizer.zero_grad()
+    prediction = net(X[idx:idx+minibatch_size])
+    loss = loss_fn(prediction, Y[idx:idx+minibatch_size])
+    loss.backward()
+    optimizer.step()
+print("Finished training!")
+#+end_src
 
-#+LATEX: \scriptsize
 #+RESULTS:
-#+begin_example
-[[[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  2.63856982e-05   8.96630138e-02   9.10310626e-01]]
+: Finished training!
 
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  1.57812089e-02   9.63519156e-01   2.06995625e-02]]
+Now lets check the output of the trained network on some example
+inputs.
 
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.96497989e-01   3.50204227e-03   1.25929889e-09]]
+#+begin_src jupyter-python
+for x, y in zip(th.softmax(net(X[:5]),1), Y[:5]): print(x,y.item())
+#+end_src
 
- [[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  4.74178378e-05   1.32592529e-01   8.67359996e-01]]
+#+RESULTS:
+: tensor([0.8616, 0.1243, 0.0142], grad_fn=<SelectBackward>) 0
+: tensor([0.8222, 0.1574, 0.0203], grad_fn=<SelectBackward>) 0
+: tensor([0.8498, 0.1341, 0.0161], grad_fn=<SelectBackward>) 0
+: tensor([0.8101, 0.1647, 0.0252], grad_fn=<SelectBackward>) 0
+: tensor([0.8670, 0.1192, 0.0138], grad_fn=<SelectBackward>) 0
 
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.87556934e-01   1.24430126e-02   1.36296467e-08]]
+Looking good. Lets check the accuracy of the network
 
- [[  0.00000000e+00   0.00000000e+00   1.00000000e+00]
-  [  7.08267498e-06   3.83740403e-02   9.61618841e-01]]
+#+begin_src jupyter-python
+prediction=net(X)
+_, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
+print(th.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
 
- [[  1.00000000e+00   0.00000000e+00   0.00000000e+00]
-  [  9.89948869e-01   1.00511070e-02   9.48140944e-09]]
+#+end_src
 
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  6.58096792e-03   8.90939236e-01   1.02479771e-01]]
+#+RESULTS:
+: tensor(0.6667)
 
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  4.53994563e-03   8.66963148e-01   1.28496900e-01]]
+67%, the network got stuck in a local minimum this time (you'll
+probably get a different value).
 
- [[  0.00000000e+00   1.00000000e+00   0.00000000e+00]
-  [  1.97829530e-02   9.56251919e-01   2.39650477e-02]]]
-#+end_example
+Lets make a confusion matrix to find out where the network is having troubles
+
+#+begin_src jupyter-python
+confusion = th.zeros(3, 3)
+for i, j in zip(net(X).max(1)[1], Y): confusion[i,j] += 1
+plt.matshow(confusion)
+plt.colorbar()
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: <matplotlib.colorbar.Colorbar at 0x7f87b4971670>
+[[file:./.ob-jupyter/27134e8fc299bddc6138e225190f0a9253d53c0c.png]]
+:END:
+
+So its confusing 1 for 2. We could try training more, or if the
+network is simply stuck in a local minima, try to retrain, possibly
+changing some of the values.
+
+Some exercises
+
+- Try to increase the number of nodes in the hidden layer of the network, and retraining
+- Try adding another hidden layer to the network and retraining
+  - You'll need to add an =fc3= and you change the =fc2= output to
+    more hidden nodes
+- Try changing the optimizer. For example, try using =Adam=, does it
+  help the network converge more quickly?
+  - In this case though, there are very few datapoints...
 
 * DNN: MNIST
-** MNIST digit recognition and Convolutional Networks
 
-- Another, more recent, classic classification task. 
-- Given a 28x28 image of a handwritten digit, can you train a classifier to recognize the
-  numbers from 0 to 9?
-- Keras has the ability to download the dataset and parse it into
-  numpy arrays. We use =to_categorical= to one hot encode the true
-  labels (which number did they write?) as for the irises
-
-#+LATEX: \scriptsize
-#+BEGIN_SRC python :session mltute :exports code
-(x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+- Okay, we're done with the warmup, lets try to build an actual deep
+  learning network, by training an image classifier
+- Another, more recent, classic classification task
+- Given a 28x28 image of a handwritten digit, can you train a
+  classifier to recognize the numbers from 0 to 9?
+  - The data was collected by NIST, and Modified to fit into a
+    standard format: 28x28 with 256 greyscale levels per pixel
+- There is an additional library =torchvision= which has the ability
+  to download the dataset into a torch dataset, which is a class that
+  wraps up the X and Y tensors we were using
+  - It gives us PIL images, we use the transform to change it to a
+    tensor
+  - There are other transformations you could perform on the image:
+    cropping, normalizing, etc.
+- The dataset is split into testing and training sets
+  - The training set should be used to train the network, the testing
+    set should only be used to test the network performance
+  - This helps gauge how well the training is doing to generalize on
+    unseen data
+  
+#+BEGIN_SRC jupyter-python
+import torchvision
+train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
+test_ = torchvision.datasets.MNIST('/tmp', download=True, train=False, transform=torchvision.transforms.ToTensor())
 #+END_SRC
 
 #+RESULTS:
 
-#+BEGIN_SRC python :session mltute :exports both :results output
-from keras.utils.np_utils import to_categorical
-# or to_categorical = tf.keras.utils.np_utils.to_categorical
+Lets see what it looks like:
 
-print(y_train[:4])
-y_train_enc = np.eye(10)[y_train]
-y_test_enc = to_categorical(y_test) # many ways to do the same thing
-print(y_train_enc[:4])
-#+END_SRC
+#+begin_src jupyter-python
+print(train_.data.shape) # X
+print(train_.targets.shape) # Y
+print(train_.data[0], train_.targets[0])
+#+end_src
 
 #+RESULTS:
-: [5 0 4 1]
-: [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.  0.]
-:  [ 1.  0.  0.  0.  0.  0.  0.  0.  0.  0.]
-:  [ 0.  0.  0.  0.  1.  0.  0.  0.  0.  0.]
-:  [ 0.  1.  0.  0.  0.  0.  0.  0.  0.  0.]]
+#+begin_example
+torch.Size([60000, 28, 28])
+torch.Size([60000])
+tensor([[  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   3,  18,
+          18,  18, 126, 136, 175,  26, 166, 255, 247, 127,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,  30,  36,  94, 154, 170, 253,
+         253, 253, 253, 253, 225, 172, 253, 242, 195,  64,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,  49, 238, 253, 253, 253, 253, 253,
+         253, 253, 253, 251,  93,  82,  82,  56,  39,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,  18, 219, 253, 253, 253, 253, 253,
+         198, 182, 247, 241,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,  80, 156, 107, 253, 253, 205,
+          11,   0,  43, 154,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,  14,   1, 154, 253,  90,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 139, 253, 190,
+           2,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  11, 190, 253,
+          70,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  35, 241,
+         225, 160, 108,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  81,
+         240, 253, 253, 119,  25,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+          45, 186, 253, 253, 150,  27,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,  16,  93, 252, 253, 187,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0, 249, 253, 249,  64,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+          46, 130, 183, 253, 253, 207,   2,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  39, 148,
+         229, 253, 253, 253, 250, 182,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  24, 114, 221, 253,
+         253, 253, 253, 201,  78,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,  23,  66, 213, 253, 253, 253,
+         253, 198,  81,   2,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,  18, 171, 219, 253, 253, 253, 253, 195,
+          80,   9,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,  55, 172, 226, 253, 253, 253, 253, 244, 133,  11,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0, 136, 253, 253, 253, 212, 135, 132,  16,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0]],
+       dtype=torch.uint8) tensor(5)
+#+end_example
 
-** Examples
+So, the data is a 60000x28x28 tensor, containing integer values from 0
+to 255, and the output is a 60000 element tensor encoding the true
+label in exactly the format needed for CrossEntropyLoss (and
+corresponding to the real digit value). Lets view some images:
 
-- We can use =matplotlib.pyplot= to show a few example digits
-- In /jupyter/, matplotlib results will show automatically, so you
-  don't need to print it out (or resize it for that matter)
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :results file :exports both
-print(x_train.shape, y_train_enc.shape)
-plt.clf()
-for i in range(6):
-    plt.subplot(1,6,i+1)
-    plt.imshow(x_train[i], cmap='gray')
-
-F = plt.gcf(); F.set_size_inches((14,2))
-plt.savefig('mnist-examples.png');
-#+END_SRC
+#+begin_src jupyter-python
+for i in range(8):
+  plt.subplot(2,4,i+1)
+  plt.imshow(train_.data[i], cmap='gray')
+print(train_.targets[:8])
+#+end_src
 
 #+RESULTS:
-[[file:mnist-examples.png]]
+:RESULTS:
+: tensor([5, 0, 4, 1, 9, 2, 1, 3])
+[[file:./.ob-jupyter/2da89490d51ba261512677b6c162d77280488285.png]]
+:END:
 
-#+ATTR_LATEX: :width \textwidth
-#+RESULTS:
+We can use another facility of pytorch to create a =DataLoader=, which
+wraps up our minibatching code from the previous section.
 
-** Simple Network
-
-- We can start by simply trying a basic neural network as before. 
-- `Flatten` takes the 2D input and concatenates the rows together to a 1D form suitable for passing to a `Dense` layer.
-
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports code 
-model = Sequential()
-model.add(Flatten(input_shape=(28,28)))
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(10))
-model.add(Activation('softmax'))
-
-model.compile(optimizer='adam', loss='categorical_crossentropy', 
-              metrics=['accuracy'])
-#+END_SRC
+#+begin_src jupyter-python
+train = th.utils.data.DataLoader(train_, batch_size=64)
+test = th.utils.data.DataLoader(test_, batch_size=64)
+#+end_src
 
 #+RESULTS:
 
-** Simple Network
+It makes it easier to do the training loop.
 
-- And =fit= and =evaluate= as we did before
+#+begin_src jupyter-python
+for x, y in train:
+    print(x.shape, y.shape)
+    break
+#+end_src
 
-#+BEGIN_SRC python :session mltute :exports both :results output
-model.fit(x_train, y_train_enc, epochs=3, verbose=1)
-loss, accuracy = model.evaluate(x_test, y_test_enc, verbose=0)
-print("Loss={:.2f}\nAccuracy = {:.2f}".format(loss, accuracy))
-#+END_SRC
-
-#+LATEX: \footnotesize
 #+RESULTS:
-: Epoch 1/3
-: 60000/60000 [==============================] - 4s - loss: 0.5373 - acc: 0.8531     
-: Epoch 2/3
-: 60000/60000 [==============================] - 4s - loss: 0.3729 - acc: 0.8861     
-: Epoch 3/3
-: 60000/60000 [==============================] - 4s - loss: 0.3207 - acc: 0.9020     
-: Loss=0.30
-: Accuracy = 0.91
+: torch.Size([64, 1, 28, 28]) torch.Size([64])
+
+** Convolutional Filter in PyTorch
+
+Notice that x is actually given as a 4D tensor. The axis of length 1
+is for image *channels*. If we had a color image, it would have length
+3, after we pass it through a convolutional layer, it has # channels
+== # filters in the layer.
+
+Convolutional filters in pytorch are accessed with
+=nn.Conv2d(nchannels_in, nchannels_out, filter_size)=.  Filter size
+can be a scalar, in which case the filter is square, or you can pass a
+2-tuple to specify the width and height.
+
+#+begin_src jupyter-python
+conv = nn.Conv2d(1, 5, 7)
+conv(x).shape
+#+end_src
+
+#+RESULTS:
+: torch.Size([64, 5, 22, 22])
+
+No filter padding, so it has reduced the image size. The =padding=
+optional argument can be used to pad the image.
 
 ** A Convolutional Network
 
-#+LATEX: \vspace{-2mm} \centering
-#+ATTR_LATEX: :width .7\textwidth
-[[file:NN_conv.png]]
+Lets make a network. It consists of a few layers of convolutions of
+varying sizes, then, we will turn the filter image into a 1d array,
+and process it through a fully-connected hidden layer. We use relu
+instead of sigmoid here. relu(x) = 0 for negative x and relu(x) = x
+for postive x, it tends to be better for network, since it is harder
+to saturate, and shut a node down.
 
-- One of the great advances in image classification in recent times
-- We have some filter kernel $K$ of size $n \times m$ which we apply
-  to every $n \times m$ cell on the original image to create a new filtered
-  image.
-- It has been seen that applying these in multiple layers of a network
-  can build up multiple levels of abstraction to classify higher-level
-  features.
-  - And, importantly, is trainable many, many layers deep
+#+begin_src jupyter-python
+class ConvNet(nn.Module):
+    def __init__(self):
+        super(ConvNet, self).__init__()
+        self.c1 = nn.Conv2d(1, 5, 7) # 28x28 -> 22x22
+        self.c2 = nn.Conv2d(5, 10, 5) # 22x22 -> 18x18
+        self.c3 = nn.Conv2d(10, 5, 3) # 18x18 -> 16x16
+        self.fc1 = nn.Linear(16*16*5,100) # 5 channels of 16x16 images
+        self.fc2 = nn.Linear(100,10)
+    def forward(self, x):
+        x = th.relu(self.c1(x))
+        x = th.relu(self.c2(x))
+        x = th.relu(self.c3(x))
+        # convert the 5x16x16 image into a 1d array with 5*16*16
+        # elements, i.e. "flatten" it
+        x = x.reshape(x.shape[0],-1)
+        x = th.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
-#+ATTR_LATEX: :width .5\textwidth
-[[file:convolve.png]]
-
-#+LATEX: \tiny
-Reference: http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/
-
-** What is the Network Learning?
-
-- In general a difficult question to answer
-- Here, Zeiler and Fergus (2013) took a trained network and /optimized
-  the input/ to activate particular nodes to give an idea
-  - Start with noise, then GD on the input, optimizing the node activation
-
-#+ATTR_LATEX: :width .9\textwidth
-[[file:network_layers.png]]
-
-** Reshaping data for Keras
-
-- Convolution of this type in Keras is provided by the =Conv2D= layer
-- =Conv2D= requires passing an array of /width x height x channels/
-  - Where channels might represent colors of an image
-- We have black and white images so we'll just reshape it into the
-  required form with a single channel.
-- We plot the image just check show the shaping is correct
-
-#+LATEX: \footnotesize
-#+BEGIN_SRC python :session mltute :exports both :results file
-x_train_dense = x_train.reshape((len(x_train), 28,28,1))
-x_test_dense = x_test.reshape((len(x_test), 28,28,1))
-
-plt.clf()
-plt.imshow(x_train_dense[0,:,:,0], cmap="gray")
-F = plt.gcf(); F.set_size_inches((2,2)); plt.savefig("testimg.png");
-#+END_SRC
-
-#+LATEX: \vspace{-3mm}
-#+ATTR_LATEX: :width .2\textwidth
-#+RESULTS:
-[[file:testimg.png]]
-
-** Building a Convolutional Neural Network in Keras
-
-- Now, lets build a convolutional neural network!
-- Generally, =Conv2D= will be stacked on top of each other with
-  =MaxPooling2D= layers and learn edge detection at lower layers and
-  higher level feature extraction in subsequent layers.
-- But just to show how to use them in keras, we'll just create one
-  convolution layer with 32 filters, then =Flatten= it into a 1D array
-  and pass it into a =Dense= hidden layer before the output.
-- We can set the =kernel_size= (/m x n/ size of the filter), and the number of filters used
-
-** Building a Convolutional Neural Network in Keras
-
-- We can set the =kernel_size= (/m x n/ size of the filter), and the number of filters used
-
-#+BEGIN_SRC python :session mltute :exports code
-model = Sequential()
-
-model.add(Conv2D(32, kernel_size=(3,3),input_shape=(28,28,1)))
-model.add(Activation('relu'))
-model.add(Flatten())
-model.add(Dense(128))
-model.add(Activation('sigmoid'))
-model.add(Dense(10))
-model.add(Activation('softmax'))
-
-model.compile(optimizer='adam', 
-              loss='categorical_crossentropy', 
-	      metrics=['accuracy'])
-#+END_SRC
+net = ConvNet()
+net(x).shape
+#+end_src
 
 #+RESULTS:
+: torch.Size([64, 10])
 
-** Training
+** A More Complete Training Loop
 
-And train the model. This is already starting to get to the point
-where a GPU would be extremely helpful!
+- Since we have a testing sample this time, lets instrument our training loop a little
+- We keep track of the running average of the loss / datapoint, and
+  after 300 minibatches we print out the running average loss, as well
+  as the average loss over the testing dataset
+- We can check for overtraining (the test set will start to diverge
+  from the training set)
+  - Here, its a bit bumpy to tell, but you can see the training loss
+    gets lower than the testing, indicating a possible saturation
+    point for this model
+- We also only put the data on the GPU as needed
+  - GPU memory is a limited resource, we need to keep the network
+    parameters and the data, so can't put the whole dataset on the GPU
+    this time (unless google gives you an A100 or something...)
 
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports both :results output
-model.fit(x_train_dense, y_train_enc, epochs=4, verbose=1)
-#+END_SRC
+#+begin_src jupyter-python
+d = th.device('cuda')
+net = ConvNet()
+net.to(d)
 
-#+LATEX: \footnotesize
+optim = th.optim.Adam(net.parameters(), lr=0.002)
+lossf = th.nn.CrossEntropyLoss()
+for epoch in range(5):
+  tl,tn = 0.,0.
+  for ii, (i, o) in enumerate(train):
+    i,o = i.to(d), o.to(d)
+    optim.zero_grad()
+    loss = lossf(net(i), o)
+    loss.backward()
+    optim.step()
+    tl+=loss.item()*i.size(0)
+    tn+=i.size(0)
+    if ii % 300 == 0:
+      print(f"epoch {epoch} batch {ii:03d}", end=' ')
+      print(f"train: {tl/tn:5f}", end=' ')
+      tl,tn = 0.,0.
+      for i, o in test:
+        i,o = i.to(d), o.to(d)
+        loss = lossf(net(i), o)
+        tl+=loss.item()*i.size(0)
+        tn+=i.size(0)
+      print(f"test: {tl/tn:5f}")
+      tl,tn = 0.,0.
+#+end_src
+
 #+RESULTS:
-: Epoch 1/4
-: 60000/60000 [==============================] - 65s - loss: 0.4544 - acc: 0.8825    
-: Epoch 2/4
-: 60000/60000 [==============================] - 70s - loss: 0.1745 - acc: 0.9493    
-: Epoch 3/4
-: 60000/60000 [==============================] - 68s - loss: 0.1369 - acc: 0.9591    
-: Epoch 4/4
-: 60000/60000 [==============================] - 69s - loss: 0.1227 - acc: 0.9634    
-: <keras.callbacks.History object at 0x11d742390>
+#+begin_example
+epoch 0 batch 000 train: 2.305417 test: 2.302866
+epoch 0 batch 300 train: 0.432548 test: 0.157276
+epoch 0 batch 600 train: 0.159395 test: 0.151761
+epoch 0 batch 900 train: 0.121112 test: 0.081811
+epoch 1 batch 000 train: 0.043302 test: 0.092392
+epoch 1 batch 300 train: 0.088562 test: 0.067064
+epoch 1 batch 600 train: 0.070742 test: 0.082866
+epoch 1 batch 900 train: 0.065900 test: 0.064576
+epoch 2 batch 000 train: 0.018246 test: 0.077515
+epoch 2 batch 300 train: 0.057674 test: 0.067060
+epoch 2 batch 600 train: 0.049775 test: 0.074788
+epoch 2 batch 900 train: 0.053226 test: 0.051444
+epoch 3 batch 000 train: 0.013761 test: 0.058822
+epoch 3 batch 300 train: 0.043579 test: 0.062349
+epoch 3 batch 600 train: 0.040766 test: 0.056704
+epoch 3 batch 900 train: 0.035504 test: 0.052557
+epoch 4 batch 000 train: 0.041700 test: 0.048617
+epoch 4 batch 300 train: 0.038992 test: 0.074224
+epoch 4 batch 600 train: 0.033564 test: 0.068567
+epoch 4 batch 900 train: 0.031579 test: 0.051940
+#+end_example
 
-#+LATEX: \small
-#+BEGIN_SRC python :session mltute :exports both :results output
-loss, accuracy = model.evaluate(x_test_dense, y_test_enc, verbose=0)
-print("Loss={:.3f}\nAccuracy = {:.3f}".format(loss, accuracy))
-#+END_SRC
+The model starts with a loss of -2.3, and saturates at about 0.05,
+this means that the model is, on average, giving the correct item a
+probability of 0.10 (10 categories, so this is equivalent to
+completely random) at the beginning, and giving the correct item an
+output of 0.95 at the end of training.
 
-#+LATEX: \footnotesize
+#+begin_src jupyter-python
+np.exp(-2.3), np.exp(-0.05)
+#+end_src
+
 #+RESULTS:
-: Loss=0.117
-: Accuracy = 0.964
+| 0.10025884372280375 | 0.951229424500714 |
 
-** Realistic Networks
+Lets check the accuracy on the test set. In this case, we won't be
+able to compute all the predictions in one pass (we would need to fit
+the whole test set on the GPU!).
 
-#+ATTR_LATEX: :width .8\textwidth
-[[file:vgg16.png]]
+#+begin_src jupyter-python
+correct, tot = 0, 0
+for x, y in test:
+    x, y = x.to(d), y.to(d)
+    prediction = net(x)
+    _, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
+    correct += th.sum(prediction_y==y)
+    tot += len(y)
+print(f"Acc.: {correct/float(tot):.3f}")
+#+end_src
 
-- Example of a real network used for image classification, VGG-16
-- Typically, networks consist of several convolution layers following
-  by max pooling layers (take the max from a 2x2 square)
+#+RESULTS:
+: Acc.: 0.983
+
+Exercises:
+- Compare the speed of the network on and off the GPU
+  - Convolutional layers are the reason we need beefy GPUs for deep learning!
+- Try adding more layers to the network, whats the best accuracy you can get?
+- With too deep a network you'll find it hard to stop from
+  overtraining, try adding some regularization layers, such as
+  dropout, illustrated below, or =nn.BatchNorm2d=
+  - Dropout helps by only allowing part of the network to see the
+    datapoint each training, so effectively you're training an
+    ensemble of networks
+  - BatchNorm smooths out the distribution of the values passed
+    between layers as all the nodes update their weights, its
+    generally always used these days (or something similar) due to how
+    much it speeds up training large networks
+  - With these layers you need to put the network into training or
+    evaluation mode. Use =net.train()=, and =net.eval()= respectively
+
+#+begin_src jupyter-python
+drop = nn.Dropout(0.5)
+print(th.ones(5))
+print(drop(th.ones(5)))
+#+end_src
+
+#+RESULTS:
+: tensor([1., 1., 1., 1., 1.])
+: tensor([0., 2., 0., 2., 2.])
+
+Note that the dropout compensates for the nodes it sets to zero by
+increasing the value of the remaining non-zero nodes, so the
+downstream node will see values of the same order of magnitude with or
+without the dropout.
+
+* GAN
+
+The discriminator network can just be our network from before, with a
+single output: is the image real or fake?
+
+#+begin_src jupyter-python
+train = th.utils.data.DataLoader(train_, batch_size=32)
+#+end_src
+
+#+RESULTS:
+
+#+begin_src jupyter-python
+class Discr(nn.Module):
+    def __init__(self):
+        super(Discr, self).__init__()
+        self.c1 = nn.Conv2d(1, 16, 7) # 28x28 -> 22x22
+        self.c2 = nn.Conv2d(16, 64, 5) # 22x22 -> 18x18
+        self.c3 = nn.Conv2d(64, 8, 3) # 18x18 -> 16x16
+        self.fc1 = nn.Linear(16*16*8,100) # 8 channels of 16x16 images
+        self.fc2 = nn.Linear(100,1)
+        self.drop = nn.Dropout(0.5)
+    def forward(self, x):
+        x = th.relu(self.drop(self.c1(x)))
+        x = th.relu(self.drop(self.c2(x)))
+        x = th.relu(self.drop(self.c3(x)))
+        # convert the 5x16x16 image into a 1d array with 5*16*16
+        # elements, i.e. "flatten" it
+        x = x.reshape(x.shape[0],-1)
+        x = th.relu(self.fc1(x))
+        x = th.sigmoid(self.fc2(x))
+        return x
+
+dis = Discr().cuda()
+print(dis(th.randn(1,1,28,28).cuda()).shape)
+#+end_src
+
+#+RESULTS:
+: torch.Size([1, 1])
+
+** Generator
+
+Here is the more interesting part. We want to take random noise, and
+then output an image. We need to basically do the inverse of
+convolving, that is, we take a image and pass it to the next layer
+*adding* features based on the input, rather than searching for
+them. We can use a =ConvTranspose2d= layer to do this
+
+#+begin_src jupyter-python
+class Gen(nn.Module):
+  def __init__(self, input_size=100):
+    super(Gen, self).__init__()
+    self.input_size = input_size
+    self.fc1 = nn.Linear(self.input_size, 16*16*8)
+    self.cc1 = nn.ConvTranspose2d(8,64,3) # 64x18x18
+    self.bn1 = nn.BatchNorm2d(64)
+    self.cc2 = nn.ConvTranspose2d(64,16,5) # 16x22x22
+    self.bn2 = nn.BatchNorm2d(16)
+    self.cc3 = nn.ConvTranspose2d(16,1,7) # 1x28x28
+  def forward(self, x):
+    x = th.relu(self.fc1(x))
+    x = x.view(-1,8,16,16)
+    x = th.relu(self.bn1(self.cc1(x)))
+    x = th.relu(self.bn2(self.cc2(x)))
+    x = th.sigmoid(self.cc3(x))
+    return x
+
+gen = Gen().cuda()
+dis(gen(th.randn(10,100).cuda())).shape
+#+end_src
+
+#+RESULTS:
+: torch.Size([10, 1])
+
+** Training Loop
+
+Notice we put dropout in the discriminator (its better to have a
+smaller capacity discriminator, since it tends to be easier to train
+the discriminator than the generator), and BatchNorm in the
+generator. We want to speed up the generator training and control the
+discriminator training. GANs are delicate!
+
+We need to train both the discriminator and the generator. We set up
+separate optimizers for each.
+
+Our training loop starts by outputting sample images the generator is
+currently creating. We use the same latent vectors each time, so we
+can see the evolution of the same vector.
+
+In the loop, we update the discriminator by converging the output
+toward 1 for real images, and toward 0 for generated images.
+
+We then update the generator, by passing the generated images through
+the discriminator, and trying to send the value of the discriminator
+toward 1 (by changing the *generator* weights, the discriminator
+weights are fixed during this update).
+
+We keep track of the average loss for the discriminator and generator
+updates separately and record them at the end of each epoch. This is
+particularly important here as GANs are prone to collapse: one of the
+generator or discriminator becomes too good, and the other no longer
+trains. This is usually seen by one of the losses going to 0, and the
+other diverging. A good training run should have the generator and
+discriminator fighting with each other, and small fluctuations in each
+loss.  Another thing to look out for is *mode collapse*: this is where
+the generator only outputs a single image, effectively ignoring the
+random noise input. If all the images being produced in our test step
+are the same, we probably have mode collapse.
+
+#+begin_src jupyter-python
+import datetime
+g_optim = th.optim.Adam(gen.parameters(), lr=2e-4)
+d_optim = th.optim.Adam(dis.parameters(), lr=2e-4)
+lossf = nn.BCELoss()
+
+gen.train(); dis.train()
+# keep the input latent vectors for images the same in each epoch
+noise = th.randn((25,gen.input_size)).cuda()
+gloss, dloss = [], []
+for epoch in range(25):
+  print(f"--- Epoch {epoch} {datetime.datetime.now().strftime('%H:%M:%S')}")
+  gen.eval()
+  im = gen(noise).view(-1,28,28)
+  plt.clf()
+  plt.gcf().set_size_inches(25, 25)
+  for i in range(25):
+    plt.subplot(5,5,i+1)
+    plt.imshow(im[i].detach().cpu(), cmap='gray')
+  plt.savefig(f'images/fc_{epoch:03d}.png')
+  plt.clf()
+  gen.train()
+  gl, gn = 0., 0.
+  dl, dn = 0., 0.
+  for ii, (i, o) in enumerate(train):
+    i, o = i.cuda(), o.cuda()
+    ones = th.tensor([1.]*i.size(0)).view(-1,1).cuda()
+    zeros = th.tensor([0.]*i.size(0)).view(-1,1).cuda()
+    randn = lambda: th.randn(i.size(0), gen.input_size).cuda()
+    # update d
+    d_optim.zero_grad()
+    gen.requires_grad=False
+    dis.requires_grad=True
+    loss = lossf(dis(i), ones)
+    loss.backward()
+    dl += loss; dn += i.size(0)
+    loss = lossf(dis(gen(randn())), zeros)
+    loss.backward()
+    dl += loss; dn += i.size(0)
+    d_optim.step()
+    
+    # update g
+    g_optim.zero_grad()
+    dis.requires_grad=False
+    gen.requires_grad=True
+    loss = lossf(dis(gen(randn())), ones)
+    loss.backward()
+    gl += loss; gn += i.size(0)
+    loss = lossf(dis(gen(randn())), ones)
+    loss.backward()
+    gl += loss; gn += i.size(0)
+    g_optim.step()
+    
+  print(f"dis: {(dl/dn).item():.3f} gen: {(gl/gn).item():.3f}")
+  gloss.append((gl/gn).item())
+  dloss.append((dl/dn).item())
+
+print("Done")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+--- Epoch 0 20:22:27
+dis: 0.012 gen: 0.064
+--- Epoch 1 20:22:52
+dis: 0.015 gen: 0.045
+--- Epoch 2 20:23:17
+dis: 0.015 gen: 0.042
+--- Epoch 3 20:23:42
+dis: 0.015 gen: 0.042
+--- Epoch 4 20:24:07
+dis: 0.015 gen: 0.044
+--- Epoch 5 20:24:32
+dis: 0.014 gen: 0.046
+--- Epoch 6 20:24:58
+dis: 0.014 gen: 0.047
+--- Epoch 7 20:25:23
+dis: 0.014 gen: 0.049
+--- Epoch 8 20:25:48
+dis: 0.014 gen: 0.050
+--- Epoch 9 20:26:14
+dis: 0.013 gen: 0.052
+--- Epoch 10 20:26:38
+dis: 0.013 gen: 0.052
+--- Epoch 11 20:27:03
+dis: 0.013 gen: 0.053
+--- Epoch 12 20:27:29
+dis: 0.013 gen: 0.053
+--- Epoch 13 20:27:54
+dis: 0.013 gen: 0.053
+--- Epoch 14 20:28:19
+dis: 0.013 gen: 0.053
+--- Epoch 15 20:28:44
+dis: 0.013 gen: 0.052
+--- Epoch 16 20:29:09
+dis: 0.013 gen: 0.052
+--- Epoch 17 20:29:34
+dis: 0.013 gen: 0.051
+--- Epoch 18 20:29:59
+dis: 0.013 gen: 0.051
+--- Epoch 19 20:30:25
+dis: 0.014 gen: 0.050
+--- Epoch 20 20:30:50
+#+end_example
+
+Example images over epochs:
+
+Epoch 0:
+[[file:images/fc_000.png]]
+Epoch 1:
+[[file:images/fc_001.png]]
+Epoch 2:
+[[file:images/fc_002.png]]
+Epoch 3:
+[[file:images/fc_003.png]]
+Epoch 4:
+[[file:images/fc_004.png]]
+Epoch 5:
+[[file:images/fc_005.png]]
+
+Exercises:
+- In this case, using batchnorm on the generator will greatly
+  regularize and speed up the training.  What happens if you remove
+  the normalization? [when I tried, I saw mode collapse]
+- Try adding more or fewer layers, how does it affect the speed and
+  quality of generation?
+
+* Complete Examples
+
+** Iris Classification with a Simple NN
+
+** MNIST Classification with a CNN
+
+** MNIST GAN
+
+
+
+* BELOW THIS IS STILL KERAS
 
 * GAN
 ** A Convolution GAN
@@ -979,7 +1294,7 @@ print("Loss={:.3f}\nAccuracy = {:.3f}".format(loss, accuracy))
 
 - We start with the image generation network
 - Essentially a image classifier in reverse. 
-- The top layer is for high-level feature inputs which we'll randomly set during the training. 
+- The top layer is for high-level feature inputs which we'll randomly set during the trainingen. 
 - We then pass through Dense layers and then reshape into a /7 x 7 x
   channels/ image-style layer.
 - We =Upsampling2D= and pass through convolutional filters until the
@@ -1019,7 +1334,7 @@ generate.compile(loss="binary_crossentropy", optimizer="SGD")
 
 Now, just to check everythings put together properly, randomly pass
 some data through the network and check we get image outputs as
-expected.
+expectedis.
 
 #+LATEX: \small
 #+BEGIN_SRC python :session mltute :exports both :results file
