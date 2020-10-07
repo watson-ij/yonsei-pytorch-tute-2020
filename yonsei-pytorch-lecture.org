@@ -57,7 +57,7 @@
 
 - Slides available from (this will redirect to my github repo.):
 
-_[[https://git.io/yonsei-slides-2020]]_
+_[[https://git.io/yonsei2020]]_
 
 - Other Resources:
   - Pytorch documentation: _[[https://pytorch.org/]]_
