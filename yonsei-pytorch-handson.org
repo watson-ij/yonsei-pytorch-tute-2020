@@ -165,12 +165,18 @@ plt.show()
 - Library written in python, user-friendly interface
 - API is similar to numpy, can write straightforward python (cf. tensorflow)
 - Easy to get started building networks
+  - Though a little more setup required than Keras, with the trade-off
+    that you understand the training process deeper
 - Quickly build and train serious models, easy to experiment
+
+We're going to run through some examples step-by-step in colab, and
+the complete examples in a single cell are available at the bottom of
+the notebook.
 
 ** imports
 
 - Follow along either on the web-based service, or your own machine
-- Lets pull in all the imports and definitions we'll need
+- Lets pull in all the imports and definitions we'll need up front
 
 ***                                                                   :BMCOL:
     :PROPERTIES:
@@ -184,9 +190,11 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 import numpy as np
-import torch as th # n.b. this is somewhat non-standard
+import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision
+import datetime
 #+END_SRC
 
 #+RESULTS:
@@ -207,6 +215,9 @@ import torch.optim as optim
     :BEAMER_col: .5
     :END:
 
+| Iris Versicolor                    | Iris Virginica                           | Iris Setosa                                          |
+| [[file:figures/Blue_Flag,_Ottawa.jpg]] | [[file:figures/1920px-Iris_virginica_2.jpg]] | [[file:figures/Kosaciec_szczecinkowaty_Iris_setosa.jpg]] |
+    
 #+ATTR_LATEX: :width \textwidth
 [[file:figures/iris_petal_sepal.png]]
 
@@ -260,51 +271,6 @@ plot.savefig('iris.png')
 #+RESULTS:
 [[file:figures/iris.png]]
 
-** The Logistic Function and Logistic Regression
-
-\centering
-#+ATTR_LATEX: :width .4\textwidth
-[[file:figures/logistic.pdf]]
-
-- The logistic (or sigmoid) function is defined as \(f(x) = \frac{1}{1+e^{-x}}\)
-  - Looks like a classic "turn-on" curve
-- Concentrate on the case of two classes (cat/dog or electron/photon),
-  and ask what we want from a classifier output
-  - We need to distinguish between the two classes using the output:
-  - If the value is 0, it represents the classifier identifying one class (cat)
-  - If its near 1, the classifier is identifies the other class (dog)
-  - Thus, we need to transform the input variables into 1D, then pass through the logistic function
-- This is a simple classification technique called /logistic regression/
-
-** Neural Networks Overview
-
-#+LATEX: \centering
-#+ATTR_LATEX: :width .5\textwidth
-[[file:figures/neural_net.jpeg]]
-
-- Example shown: input vector $\vec{x}$, goes through
-  $\vec{y}_{hidden} = W\vec{x} + \vec{b}$, then $\vec{y}_{output} =
-  \sigma(\vec{y}_{hidden})$ (\sigma is some non-linear turn-on curve)
-- I.e. hidden layer combines $\vec{x}$ by some weights, then if the
-  weighted sum passes a threshold $\vec{b}$, we turn on the output
-  (with the $\sigma(x) = 1/(1+e^{-x})$ to gate the ops)
-- Need to *train* the weight matrix $W$ and the bias vector $b$ and
-  optimize a "loss" function that represents a distance from the target output
-
-** Backpropagation
-
-- The algorithm to train neural networks is called *backpropagation*
-- Its essentially a gradient descent implemented taking the network
-  structure into account to speed up evaluation of the partials
-- To apply gradient descent, need a function of a single variable, called the /loss/
-  - \(L(x_i|\sigma) = \sum_i |f(x_i | \sigma) - y_i|^2\) for inputs \(x_i\) and known output \(y_i\)
-- We start with the parameters set to arbitrary values, usually picked from e.g. unit gaussian
-- We run a forward pass through the network and calculate the loss
-- Using the chain rule, calculate /all/ the derivates backward from the loss to
-  the higher layers
-- Propagate changes based on the gradient $\Delta w_i = -\eta \frac{\partial f}{\partial w_i}$
-- For more on how backpropagation works: _[[http://neuralnetworksanddeeplearning.com/chap2.html]]_
-
 ** PyTorch Networks
 
 In order to classify the irises, we'll build a simple network in PyTorch.
@@ -330,9 +296,9 @@ In order to classify the irises, we'll build a simple network in PyTorch.
 
 #+begin_src jupyter-python
 arr = np.array([1.,2.,3.])
-print(th.Tensor(arr)) # build from a numpy array
-print(th.Tensor([1.,2.,3.])) # or a python array
-print(th.linspace(1., 3., 3)) # or a helper function
+print(torch.Tensor(arr)) # build from a numpy array
+print(torch.Tensor([1.,2.,3.])) # or a python array
+print(torch.linspace(1., 3., 3)) # or a helper function
 #+end_src
 
 #+RESULTS:
@@ -343,24 +309,28 @@ print(th.linspace(1., 3., 3)) # or a helper function
 ** Model
 
 - Our model will be a simple NN with a single hidden layer
-- We start by building a Sequential model and add a Dense (fully-connected) layer, with sigmoid activation
-- Dense: standard layer, all inputs connect to all outputs: $\hat{y} = W\hat{x} + \hat{b}$
-  - =keras.layers.Dense(output_dim)=
-  - Can also set the initalization, add an activation layer inline, add regularizers inline, etc.
-- Activation: essentially acts as a switch for a given node, turns output on/off based on threshold
-  - =keras.layers.Activation(= /type/ =)=
-    - Where /type/ might be:
-  - /sigmoid/: $f(x) = \frac{1}{1 + e^{-x}}$
-  - /tanh/: $f(x) = \tanh{x} = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
-  - /relu/: $f(x) = \mathrm{max}(0, x)$, 'rectified linear unit'
-  - /softplus/: $f(x) =  \ln{(1 + e^x)}$, smooth approx. to /relu/
-  - /softmax/: $f_k(x) = \frac{e^{-x_k}}{\sum_i e^{-x_i}}$ for the $k$'th output, as last layer of categorical distribution, represents a probability distribution over the outputs
+- We start by building a =nn.Module= class and add =nn.Linear= (fully-connected) layer, with sigmoid activation
+- =nn.Module= : the base class for networks (really computational
+  graphs) in pytorch, your networks should derive from this class, and
+  call its =__init__= method
+- =nn.Linear=: standard layer, all inputs connect to all outputs: $\hat{y} = W\hat{x} + \hat{b}$
+  - =nn.Linear(input_dim, output_dim)=
+- In pytorch, activations are just functions in the =torch= module,
+  they have equivalents in =torch.nn=, but one of the strengths of
+  pytorch cf keras is that you can just call functions like standard
+  numpy
+- Some commonly seen activation functions:
+  - =sigmoid=: $f(x) = \frac{1}{1 + e^{-x}}$
+  - =tanh=: $f(x) = \tanh{x} = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
+  - =relu=: $f(x) = \mathrm{max}(0, x)$, 'rectified linear unit'
+  - =softplus=: $f(x) =  \ln{(1 + e^x)}$, smooth approx. to =relu=
+  - =softmax=: $f_k(x) = \frac{e^{-x_k}}{\sum_i e^{-x_i}}$ for the $k$'th output, as last layer of categorical distribution, represents a probability distribution over the outputs
 
 ** Build a model: Python code
 
-#+LATEX: \footnotesize \vspace{-2mm}
-#+BEGIN_SRC jupyter-python
+Putting it all together, we can build our first neural network:
 
+#+BEGIN_SRC jupyter-python :exports both
 class MyNet(nn.Module):
     def __init__(self):
         # setup with nn.Module's initializer
@@ -372,11 +342,11 @@ class MyNet(nn.Module):
     def forward(self, x):
         # Typical pattern in torch code, reuse the name x for
         # successive layers
-        x = th.sigmoid(self.fc1(x))
+        x = torch.sigmoid(self.fc1(x))
         x = self.fc2(x)
         return x
 
-# Build a model
+# Build an instance of the model
 net = MyNet()
 net
 #+END_SRC
@@ -387,18 +357,29 @@ net
 :   (fc2): Linear(in_features=128, out_features=3, bias=True)
 : )
 
+We can see how many parameters (trainable weights) the model has by
+summing over the =numel()= from the =parameters()= list. It matches
+our expectation:
+
+#+begin_src jupyter-python :exports both
+sum(p.numel() for p in net.parameters()), 4*128+128 + 3*128+3
+#+end_src
+
+#+RESULTS:
+| 1027 | 1027 |
+
 - Simply use the regular torch functions available in 
 - Notice, we didn't specify a softmax activation in the final layer
   - We'll see why when we get to training
 - To use, simply pass in an input tensor
 
-#+begin_src jupyter-python
-input = th.tensor([1.,2.,3.,4.])
+#+begin_src jupyter-python :exports both
+input = torch.tensor([1.,2.,3.,4.])
 net(input)
 #+end_src
 
 #+RESULTS:
-: tensor([-0.0109, -0.5471, -0.4335], grad_fn=<AddBackward0>)
+: tensor([ 0.1369, -0.3811, -0.6350], grad_fn=<AddBackward0>)
 
 - Note that the network allows you to pass in several datapoints at
   once, so you can use a tensor of dimension 1 more than the
@@ -406,23 +387,23 @@ net(input)
 - Here, we have a 1d tensor with 4 elements in the first dimension, so
   we can pass a dimension 2 tensor in (the first dimension is the n-inputs dimension)
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 # Process two inputs, get back two outputs
-input = th.tensor([[1.,2.,3.,4.],
-                   [2.,3.,4.,5.]])
+input = torch.tensor([[1.,2.,3.,4.],
+                      [2.,3.,4.,5.]])
 net(input)
 #+end_src
 
 #+RESULTS:
-: tensor([[-0.0109, -0.5471, -0.4335],
-:         [ 0.0038, -0.5836, -0.4449]], grad_fn=<AddmmBackward>)
+: tensor([[-0.3247, -0.2006,  0.1621],
+:         [-0.3255, -0.1476,  0.1677]], grad_fn=<AddmmBackward>)
 
 - To run on the GPU, we need to make sure all the parameters of the
   network are placed on the GPU, and the inputs are placed on the GPU.
   - We can use the =Tensor.cuda()= funcion which returns a GPU copy of the tensor
   - We can also use =Tensor.to(dev)= with =dev =
-    th.device('cuda:0')= to specify a specific CUDA device, or have a
-    way to switch to cpu (=dev = th.device('cpu')=, could have an
+    torch.device('cuda:0')= to specify a specific CUDA device, or have a
+    way to switch to cpu (=dev = torch.device('cpu')=, could have an
     if-clause choosing cuda if available or else CPU)
 - Similarly, we can put a cuda tensor back on the CPU with =Tensor.cpu()=
 
@@ -433,8 +414,8 @@ net(input) # you should see the device is now displayed
 #+end_src
 
 #+RESULTS:
-: tensor([[-0.0109, -0.5471, -0.4335],
-:         [ 0.0038, -0.5836, -0.4449]], device='cuda:0', grad_fn=<AddmmBackward>)
+: tensor([[-0.3247, -0.2006,  0.1621],
+:         [-0.3255, -0.1476,  0.1677]], device='cuda:0', grad_fn=<AddmmBackward>)
 
 ** Loss function
 
@@ -464,14 +445,14 @@ if you know Keras).
 # activation in this case
 aNet = nn.Sequential(nn.Linear(2,4), nn.Sigmoid(), nn.Linear(4,1), nn.Sigmoid()).cuda()
 
-loss_fn = th.nn.BCELoss() # the losses live in torch.nn
-out = aNet(th.zeros(2).cuda()) # the net is on the GPU
-loss = loss_fn(out, th.tensor([1.]).cuda()) # one datapt
-print(loss.item(), -th.log(out).item()) # theres no magic
+loss_fn = torch.nn.BCELoss() # the losses live in torch.nn
+out = aNet(torch.zeros(2).cuda()) # the net is on the GPU
+loss = loss_fn(out, torch.tensor([1.]).cuda()) # one datapt
+print(loss.item(), -torch.log(out).item()) # theres no magic
 #+end_src
 
 #+RESULTS:
-: 1.0108411312103271 1.0108411312103271
+: 1.0056694746017456 1.0056694746017456
 
 For more than two outputs, we use cross-entropy loss. In pytorch, the
 loss function applies the softmax itself (so we don't need it in our
@@ -480,17 +461,17 @@ output [think of it like the -log of the networks probability for it
 to be the true value].
 
 #+begin_src jupyter-python
-loss_fn = th.nn.CrossEntropyLoss()
+loss_fn = torch.nn.CrossEntropyLoss()
 # the net is on the GPU, here we create 3 inputs, each filled with zeros
-out = net(th.zeros(3,4).cuda())
+out = net(torch.zeros(3,4).cuda())
  # for CrossEntropyLoss, the true values should be the position of the real label
-print(loss_fn(out, th.tensor([0,1,2]).cuda()))
+print(loss_fn(out, torch.tensor([0,1,2]).cuda()))
 # Note that the output is the *average* of the losses of all the input items
 #   this makes it easier to process a batch of inputs and run gradient descent
 #+end_src
 
 #+RESULTS:
-: tensor(1.1006, device='cuda:0', grad_fn=<NllLossBackward>)
+: tensor(1.1201, device='cuda:0', grad_fn=<NllLossBackward>)
 
 Just to be explicit of what CrossEntropyLoss means.
 - /softmax/ normalizes the output layer so it sums to 1: $f_k(x) = \frac{e^{-y_k}}{\sum_i e^{-y_i}}$
@@ -498,23 +479,24 @@ Just to be explicit of what CrossEntropyLoss means.
   - We are in the fully-labelled paradigm for training
 
 #+begin_src jupyter-python
-out = net(th.zeros(1,4).cuda())
+out = net(torch.zeros(1,4).cuda())
+loss = loss_fn(out, torch.tensor([0]).cuda())
 # use item() to extract a single value from a tensor and return as a python float
-print("output of the loss_fn", loss_fn(out, th.tensor([0]).cuda()).item())
+print("output of the loss_fn", loss.item())
 # we softmax over the outputs (zeroth axis is the datapoints axis, first axis is the output axis)
-print(th.softmax(out,1))
+print(torch.softmax(out,1))
 # The softmax output sums to 1, hence its like a "probability for each possible output"
-print(th.softmax(out,1).sum().item())
+print(torch.softmax(out,1).sum().item())
 # then cross entropy is the -log(p) where p is the true output, here
 # we pretend that we know the 0th category is the true category
-print(-th.log(th.softmax(out,1)[0,0]).item())
+print(-torch.log(torch.softmax(out,1)[0,0]).item())
 #+end_src
 
 #+RESULTS:
-: output of the loss_fn 1.0241286754608154
-: tensor([[0.3591, 0.3335, 0.3074]], device='cuda:0', grad_fn=<SoftmaxBackward>)
+: output of the loss_fn 1.2442547082901
+: tensor([[0.2882, 0.2773, 0.4345]], device='cuda:0', grad_fn=<SoftmaxBackward>)
 : 1.0
-: 1.0241286754608154
+: 1.2442547082901
 
 The closer the output of the true value is to 1, the closer the
 CrossEntropyLoss is to 0. The closer it is to 0, the CrossEntropyLoss
@@ -535,22 +517,48 @@ and 1.
 =BCELoss= expects a value between 0 and 1, so you should apply
 =sigmoid= to the final layer in this case.
 
+** Calculating Gradients
+
+One final thing that we need to do is to calculate the partial
+derivatives of all the parameters of the model with respect to the
+loss, then we can use the gradient descent algorithm to update the
+weights. PyTorch has been keeping track of the computational graph
+built up when we calculate the loss, and can calculate and store the
+partial derivatives in the graph by calling =backward()= on the loss.
+
+Gradients accumulate, meaning multiple calls to =backward()= will sum
+the gradients stored in each weight. This allows the graph to be built
+up in possibly several batches before using, allowing for arbitrary
+flexibility. We can clear out the gradients using =zero_grad()=:
+
+#+begin_src jupyter-python :exports both
+loss.backward() # calculate once so the gradients are actually made
+net.zero_grad() # clear the gradients
+# print out one specific weight in our network
+print(list(net.fc1.parameters())[0].grad[0,0])
+out = net(torch.ones(1,4).cuda())
+loss = loss_fn(out, torch.tensor([0]).cuda())
+loss.backward() # calculate the gradients with inputs all 1s
+print(list(net.fc1.parameters())[0].grad[0,0])
+#+end_src
+
+#+RESULTS:
+: tensor(0., device='cuda:0')
+: tensor(-0.0056, device='cuda:0')
 
 ** Training
 
 - Now we fit to the training data. 
-- We can set the number of =epochs=, =batch_size=, and =verbose='ity
+- We need to choose the number of =epochs= and the =batch_size=
   - Epochs: number of training passes through the complete dataset
   - Batch size: number of datapoints to consider together when
-    updating the network
-- We pass through the input data as a numpy array (nsamples, 4)
-- We pass the output as (nsamples, 3) where for each sample one
-  of the positions is 1, corresponding to the correct class. 
+    updating the network, pytorch will calculate a single batch in a
+    single call to the netowrk
+- We will pass through the input data as a tensor of shape (nsamples, 4)
+- We pass the output as a tensor of (nsamples) indicating the true class position
 - We transform the raw species information (which labels classes as
   strings: "setosa", "virginica", "versicolor") to the expected format
-  - Setosa = should give =(1, 0, 0)=, i.e. 1 in the 0th position
-  - Versicolor = =(0, 1, 0)=
-  - Virginica = =(0, 0, 1)=
+  - Plants which are really setosa = 0, versicolor = 1, virginica = 2
 
 #+begin_src jupyter-python
 variables = iris.values[:, :4]
@@ -593,10 +601,6 @@ print(variables[0], ":", species_[0], ":", species[0])
   - Also, you can argue that SGD should generalize better since its
     harder to fit to the datapoints and easier to fit general features 
     with the loss landscape constantly changing between updates
-- =loss.backward()= performs the backpropagation on the computational
-  graph, calculating the partial derivatives of the weights w.r.t. loss
-  - Allows the graph to be built up in possibly several steps before
-    computing, allowing for arbitrary flexibility
 - An optimizer keeps track of the gradients and can potentially
   automatically set different learning rates for different parameters
   - E.g. look up Adam, Adagrad, or RMSprop for instance
@@ -612,17 +616,20 @@ print(variables[0], ":", species_[0], ":", species[0])
 
 #+begin_src jupyter-python
 # By default, pytorch operates on floats, not doubles
-X, Y = th.tensor(variables.astype('float32')), th.tensor(species)
+X, Y = torch.tensor(variables.astype('float32')).cuda(), torch.tensor(species).cuda()
 # A basic stochastic gradient descent optimizer
 n_epochs, minibatch_size = 5, 16
 optimizer = optim.SGD(net.parameters(), lr=0.1)
-loss_fn = th.nn.CrossEntropyLoss()
+loss_fn = torch.nn.CrossEntropyLoss()
 optimizer.zero_grad()
+# loop over epochs
 for _ in range(n_epochs):
+  # take slices of data for the minibatch
   for idx in range(0,len(X),minibatch_size):
+    x, y = X[idx:idx+minibatch_size], Y[idx:idx+minibatch_size]
     optimizer.zero_grad()
-    prediction = net(X[idx:idx+minibatch_size])
-    loss = loss_fn(prediction, Y[idx:idx+minibatch_size])
+    prediction = net(x)
+    loss = loss_fn(prediction, y)
     loss.backward()
     optimizer.step()
 print("Finished training!")
@@ -635,27 +642,27 @@ Now lets check the output of the trained network on some example
 inputs.
 
 #+begin_src jupyter-python
-for x, y in zip(th.softmax(net(X[:5]),1), Y[:5]): print(x,y.item())
+for x, y in zip(torch.softmax(net(X[:5]),1), Y[:5]): print(x,y.item())
 #+end_src
 
 #+RESULTS:
-: tensor([0.8616, 0.1243, 0.0142], grad_fn=<SelectBackward>) 0
-: tensor([0.8222, 0.1574, 0.0203], grad_fn=<SelectBackward>) 0
-: tensor([0.8498, 0.1341, 0.0161], grad_fn=<SelectBackward>) 0
-: tensor([0.8101, 0.1647, 0.0252], grad_fn=<SelectBackward>) 0
-: tensor([0.8670, 0.1192, 0.0138], grad_fn=<SelectBackward>) 0
+: tensor([0.7734, 0.1449, 0.0817], device='cuda:0', grad_fn=<SelectBackward>) 0
+: tensor([0.7146, 0.1688, 0.1166], device='cuda:0', grad_fn=<SelectBackward>) 0
+: tensor([0.7630, 0.1485, 0.0885], device='cuda:0', grad_fn=<SelectBackward>) 0
+: tensor([0.7079, 0.1656, 0.1265], device='cuda:0', grad_fn=<SelectBackward>) 0
+: tensor([0.7853, 0.1385, 0.0763], device='cuda:0', grad_fn=<SelectBackward>) 0
 
 Looking good. Lets check the accuracy of the network
 
 #+begin_src jupyter-python
 prediction=net(X)
-_, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
-print(th.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
+_, prediction_y = torch.max(prediction,1) # returns (the max value, position of the max value)
+print(torch.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
 
 #+end_src
 
 #+RESULTS:
-: tensor(0.6667)
+: tensor(0.6667, device='cuda:0')
 
 67%, the network got stuck in a local minimum this time (you'll
 probably get a different value).
@@ -663,7 +670,7 @@ probably get a different value).
 Lets make a confusion matrix to find out where the network is having troubles
 
 #+begin_src jupyter-python
-confusion = th.zeros(3, 3)
+confusion = torch.zeros(3, 3)
 for i, j in zip(net(X).max(1)[1], Y): confusion[i,j] += 1
 plt.matshow(confusion)
 plt.colorbar()
@@ -671,7 +678,7 @@ plt.colorbar()
 
 #+RESULTS:
 :RESULTS:
-: <matplotlib.colorbar.Colorbar at 0x7f87b4971670>
+: <matplotlib.colorbar.Colorbar at 0x7f14b007faf0>
 [[file:./.ob-jupyter/27134e8fc299bddc6138e225190f0a9253d53c0c.png]]
 :END:
 
@@ -718,7 +725,6 @@ Some exercises
     unseen data
   
 #+BEGIN_SRC jupyter-python
-import torchvision
 train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
 test_ = torchvision.datasets.MNIST('/tmp', download=True, train=False, transform=torchvision.transforms.ToTensor())
 #+END_SRC
@@ -818,8 +824,8 @@ We can use another facility of pytorch to create a =DataLoader=, which
 wraps up our minibatching code from the previous section.
 
 #+begin_src jupyter-python
-train = th.utils.data.DataLoader(train_, batch_size=64)
-test = th.utils.data.DataLoader(test_, batch_size=64)
+train = torch.utils.data.DataLoader(train_, batch_size=64)
+test = torch.utils.data.DataLoader(test_, batch_size=64)
 #+end_src
 
 #+RESULTS:
@@ -877,13 +883,13 @@ class ConvNet(nn.Module):
         self.fc1 = nn.Linear(16*16*5,100) # 5 channels of 16x16 images
         self.fc2 = nn.Linear(100,10)
     def forward(self, x):
-        x = th.relu(self.c1(x))
-        x = th.relu(self.c2(x))
-        x = th.relu(self.c3(x))
+        x = torch.relu(self.c1(x))
+        x = torch.relu(self.c2(x))
+        x = torch.relu(self.c3(x))
         # convert the 5x16x16 image into a 1d array with 5*16*16
         # elements, i.e. "flatten" it
         x = x.reshape(x.shape[0],-1)
-        x = th.relu(self.fc1(x))
+        x = torch.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 
@@ -911,12 +917,12 @@ net(x).shape
     this time (unless google gives you an A100 or something...)
 
 #+begin_src jupyter-python
-d = th.device('cuda')
+d = torch.device('cuda')
 net = ConvNet()
 net.to(d)
 
-optim = th.optim.Adam(net.parameters(), lr=0.002)
-lossf = th.nn.CrossEntropyLoss()
+optim = torch.optim.Adam(net.parameters(), lr=0.002)
+lossf = torch.nn.CrossEntropyLoss()
 for epoch in range(5):
   tl,tn = 0.,0.
   for ii, (i, o) in enumerate(train):
@@ -986,8 +992,8 @@ correct, tot = 0, 0
 for x, y in test:
     x, y = x.to(d), y.to(d)
     prediction = net(x)
-    _, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
-    correct += th.sum(prediction_y==y)
+    _, prediction_y = torch.max(prediction,1) # returns (the max value, position of the max value)
+    correct += torch.sum(prediction_y==y)
     tot += len(y)
 print(f"Acc.: {correct/float(tot):.3f}")
 #+end_src
@@ -1029,8 +1035,8 @@ Exercises:
 
 #+begin_src jupyter-python
 drop = nn.Dropout(0.5)
-print(th.ones(5))
-print(drop(th.ones(5)))
+print(torch.ones(5))
+print(drop(torch.ones(5)))
 #+end_src
 
 #+RESULTS:
@@ -1048,7 +1054,7 @@ The discriminator network can just be our network from before, with a
 single output: is the image real or fake?
 
 #+begin_src jupyter-python
-train = th.utils.data.DataLoader(train_, batch_size=32)
+train = torch.utils.data.DataLoader(train_, batch_size=32)
 #+end_src
 
 #+RESULTS:
@@ -1064,18 +1070,18 @@ class Discr(nn.Module):
         self.fc2 = nn.Linear(100,1)
         self.drop = nn.Dropout(0.5)
     def forward(self, x):
-        x = th.relu(self.drop(self.c1(x)))
-        x = th.relu(self.drop(self.c2(x)))
-        x = th.relu(self.drop(self.c3(x)))
+        x = torch.relu(self.drop(self.c1(x)))
+        x = torch.relu(self.drop(self.c2(x)))
+        x = torch.relu(self.drop(self.c3(x)))
         # convert the 5x16x16 image into a 1d array with 5*16*16
         # elements, i.e. "flatten" it
         x = x.reshape(x.shape[0],-1)
-        x = th.relu(self.fc1(x))
-        x = th.sigmoid(self.fc2(x))
+        x = torch.relu(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x))
         return x
 
 dis = Discr().cuda()
-print(dis(th.randn(1,1,28,28).cuda()).shape)
+print(dis(torch.randn(1,1,28,28).cuda()).shape)
 #+end_src
 
 #+RESULTS:
@@ -1101,15 +1107,15 @@ class Gen(nn.Module):
     self.bn2 = nn.BatchNorm2d(16)
     self.cc3 = nn.ConvTranspose2d(16,1,7) # 1x28x28
   def forward(self, x):
-    x = th.relu(self.fc1(x))
+    x = torch.relu(self.fc1(x))
     x = x.view(-1,8,16,16)
-    x = th.relu(self.bn1(self.cc1(x)))
-    x = th.relu(self.bn2(self.cc2(x)))
-    x = th.sigmoid(self.cc3(x))
+    x = torch.relu(self.bn1(self.cc1(x)))
+    x = torch.relu(self.bn2(self.cc2(x)))
+    x = torch.sigmoid(self.cc3(x))
     return x
 
 gen = Gen().cuda()
-dis(gen(th.randn(10,100).cuda())).shape
+dis(gen(torch.randn(10,100).cuda())).shape
 #+end_src
 
 #+RESULTS:
@@ -1155,14 +1161,13 @@ random noise input. If all the images being produced in our test step
 are the same, we probably have mode collapse.
 
 #+begin_src jupyter-python
-import datetime
-g_optim = th.optim.Adam(gen.parameters(), lr=2e-4)
-d_optim = th.optim.Adam(dis.parameters(), lr=2e-4)
+g_optim = torch.optim.Adam(gen.parameters(), lr=2e-4)
+d_optim = torch.optim.Adam(dis.parameters(), lr=2e-4)
 lossf = nn.BCELoss()
 
 gen.train(); dis.train()
 # keep the input latent vectors for images the same in each epoch
-noise = th.randn((25,gen.input_size)).cuda()
+noise = torch.randn((25,gen.input_size)).cuda()
 gloss, dloss = [], []
 for epoch in range(25):
   print(f"--- Epoch {epoch} {datetime.datetime.now().strftime('%H:%M:%S')}")
@@ -1180,9 +1185,9 @@ for epoch in range(25):
   dl, dn = 0., 0.
   for ii, (i, o) in enumerate(train):
     i, o = i.cuda(), o.cuda()
-    ones = th.tensor([1.]*i.size(0)).view(-1,1).cuda()
-    zeros = th.tensor([0.]*i.size(0)).view(-1,1).cuda()
-    randn = lambda: th.randn(i.size(0), gen.input_size).cuda()
+    ones = torch.tensor([1.]*i.size(0)).view(-1,1).cuda()
+    zeros = torch.tensor([0.]*i.size(0)).view(-1,1).cuda()
+    randn = lambda: torch.randn(i.size(0), gen.input_size).cuda()
     # update dis, try to distinguish real (from the MNIST dataset)
     # from fake (from gen) images
     d_optim.zero_grad()
@@ -1331,7 +1336,7 @@ class MyNet(nn.Module):
         self.fc1 = nn.Linear(4,128) # fc=fully-connected
         self.fc2 = nn.Linear(128,3) # 3 possible outputs
     def forward(self, x):
-        x = th.sigmoid(self.fc1(x))
+        x = torch.sigmoid(self.fc1(x))
         x = self.fc2(x)
         return x
 
@@ -1341,12 +1346,12 @@ species_ = iris.values[:, 4]
 
 smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
 species = np.array(list(smap[s] for s in species_))
-X, Y = th.tensor(variables.astype('float32')), th.tensor(species)
+X, Y = torch.tensor(variables.astype('float32')), torch.tensor(species)
 
 # A basic (uninstrumented) pytorch training loop
 n_epochs, minibatch_size = 15, 16
 optimizer = optim.SGD(net.parameters(), lr=0.01)
-loss_fn = th.nn.CrossEntropyLoss()
+loss_fn = torch.nn.CrossEntropyLoss()
 optimizer.zero_grad()
 for _ in range(n_epochs):
   for idx in range(0, len(X), minibatch_size):
@@ -1357,10 +1362,10 @@ for _ in range(n_epochs):
     optimizer.step()
 
 prediction=net(X)
-_, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
-print(th.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
+_, prediction_y = torch.max(prediction,1) # returns (the max value, position of the max value)
+print(torch.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
 
-confusion = th.zeros(3, 3)
+confusion = torch.zeros(3, 3)
 for i, j in zip(net(X).max(1)[1], Y): confusion[i,j] += 1
 plt.matshow(confusion)
 plt.colorbar()
@@ -1386,8 +1391,8 @@ import torchvision
 
 train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
 test_ = torchvision.datasets.MNIST('/tmp', download=True, train=False, transform=torchvision.transforms.ToTensor())
-train = th.utils.data.DataLoader(train_, batch_size=64)
-test = th.utils.data.DataLoader(test_, batch_size=64)
+train = torch.utils.data.DataLoader(train_, batch_size=64)
+test = torch.utils.data.DataLoader(test_, batch_size=64)
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -1398,23 +1403,23 @@ class ConvNet(nn.Module):
         self.fc1 = nn.Linear(16*16*5,100) # 5 channels of 16x16 images
         self.fc2 = nn.Linear(100,10)
     def forward(self, x):
-        x = th.relu(self.c1(x))
-        x = th.relu(self.c2(x))
-        x = th.relu(self.c3(x))
+        x = torch.relu(self.c1(x))
+        x = torch.relu(self.c2(x))
+        x = torch.relu(self.c3(x))
         # convert the 5x16x16 image into a 1d array with 5*16*16
         # elements, i.e. "flatten" it
         x = x.reshape(x.shape[0],-1)
-        x = th.relu(self.fc1(x))
+        x = torch.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 
-d = th.device('cuda')
+d = torch.device('cuda')
 net = ConvNet()
 net.to(d)
 
 # slightly more featureful training loop
-optim = th.optim.Adam(net.parameters(), lr=0.002)
-lossf = th.nn.CrossEntropyLoss()
+optim = torch.optim.Adam(net.parameters(), lr=0.002)
+lossf = torch.nn.CrossEntropyLoss()
 for epoch in range(5):
   tl,tn = 0.,0.
   for ii, (i, o) in enumerate(train):
@@ -1439,8 +1444,8 @@ correct, tot = 0, 0
 for x, y in test:
     x, y = x.to(d), y.to(d)
     prediction = net(x)
-    _, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
-    correct += th.sum(prediction_y==y)
+    _, prediction_y = torch.max(prediction,1) # returns (the max value, position of the max value)
+    correct += torch.sum(prediction_y==y)
     tot += len(y)
 print(f"Acc.: {correct/float(tot):.3f}")
 #+end_src
@@ -1457,7 +1462,7 @@ import datetime
 import os
 
 train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
-train = th.utils.data.DataLoader(train_, batch_size=64)
+train = torch.utils.data.DataLoader(train_, batch_size=64)
 
 class Discr(nn.Module):
     def __init__(self):
@@ -1469,14 +1474,14 @@ class Discr(nn.Module):
         self.fc2 = nn.Linear(100,1)
         self.drop = nn.Dropout(0.5)
     def forward(self, x):
-        x = th.relu(self.drop(self.c1(x)))
-        x = th.relu(self.drop(self.c2(x)))
-        x = th.relu(self.drop(self.c3(x)))
+        x = torch.relu(self.drop(self.c1(x)))
+        x = torch.relu(self.drop(self.c2(x)))
+        x = torch.relu(self.drop(self.c3(x)))
         # convert the 5x16x16 image into a 1d array with 5*16*16
         # elements, i.e. "flatten" it
         x = x.reshape(x.shape[0],-1)
-        x = th.relu(self.fc1(x))
-        x = th.sigmoid(self.fc2(x))
+        x = torch.relu(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x))
         return x
 
 class Gen(nn.Module):
@@ -1490,24 +1495,24 @@ class Gen(nn.Module):
     self.bn2 = nn.BatchNorm2d(16)
     self.cc3 = nn.ConvTranspose2d(16,1,7) # 1x28x28
   def forward(self, x):
-    x = th.relu(self.fc1(x))
+    x = torch.relu(self.fc1(x))
     x = x.view(-1,8,16,16)
-    x = th.relu(self.bn1(self.cc1(x)))
-    x = th.relu(self.bn2(self.cc2(x)))
-    x = th.sigmoid(self.cc3(x))
+    x = torch.relu(self.bn1(self.cc1(x)))
+    x = torch.relu(self.bn2(self.cc2(x)))
+    x = torch.sigmoid(self.cc3(x))
     return x
 
 gen = Gen().cuda()
 dis = Discr().cuda()
 
 
-g_optim = th.optim.Adam(gen.parameters(), lr=2e-4)
-d_optim = th.optim.Adam(dis.parameters(), lr=2e-4)
+g_optim = torch.optim.Adam(gen.parameters(), lr=2e-4)
+d_optim = torch.optim.Adam(dis.parameters(), lr=2e-4)
 lossf = nn.BCELoss()
 
 gen.train(); dis.train()
 # keep the input latent vectors for images the same in each epoch
-noise = th.randn((25,gen.input_size)).cuda()
+noise = torch.randn((25,gen.input_size)).cuda()
 gloss, dloss = [], []
 for epoch in range(25):
   print(f"--- Epoch {epoch} {datetime.datetime.now().strftime('%H:%M:%S')}")
@@ -1526,9 +1531,9 @@ for epoch in range(25):
   dl, dn = 0., 0.
   for ii, (i, o) in enumerate(train):
     i, o = i.cuda(), o.cuda()
-    ones = th.tensor([1.]*i.size(0)).view(-1,1).cuda()
-    zeros = th.tensor([0.]*i.size(0)).view(-1,1).cuda()
-    randn = lambda: th.randn(i.size(0), gen.input_size).cuda()
+    ones = torch.tensor([1.]*i.size(0)).view(-1,1).cuda()
+    zeros = torch.tensor([0.]*i.size(0)).view(-1,1).cuda()
+    randn = lambda: torch.randn(i.size(0), gen.input_size).cuda()
     # update dis
     d_optim.zero_grad()
     gen.requires_grad=False
