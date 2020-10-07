@@ -90,7 +90,7 @@ Now, let's setup a new workspace
 
 - _[[https://colab.research.google.com/notebook]]_
 - Offers free jupyter-notebook-as-a-service in the cloud
-  - Even offers free access to cloud-based GPUs
+  - Even offers free access to cloud-based GPUs (need to change the runtime type!!!)
 - Has all the packages we'll need for today pre-installed
 - Demo
   - Basic jupyter usage
