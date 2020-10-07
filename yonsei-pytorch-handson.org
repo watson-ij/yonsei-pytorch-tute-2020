@@ -72,7 +72,7 @@ lines):
 virtualenv ENV
 source ENV/bin/activate
 # Download dependencies
-pip install matplotlib seaborn scikit-learn h5py jupyter
+pip install matplotlib seaborn jupyter
 # Download the CPU version of pytorch
 pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 # Then you could start a notebook
@@ -178,14 +178,11 @@ plt.show()
     :END:
 #+LATEX: \tiny
 #+BEGIN_SRC jupyter-python
-# import h5py
 import matplotlib
 # matplotlib.use("AGG")  # To batch graphics
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
-# from sklearn.model_selection import train_test_split
-# import sklearn
 import numpy as np
 import torch as th # n.b. this is somewhat non-standard
 import torch.nn as nn
@@ -557,16 +554,16 @@ and 1.
 
 #+begin_src jupyter-python
 variables = iris.values[:, :4]
-species = iris.values[:, 4]
+species_ = iris.values[:, 4]
 
 # One hot encode the species target
 smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
-species_enc = np.array(list(smap[s] for s in species))
+species = np.array(list(smap[s] for s in species_))
 
 # To show we are simply passing numpy arrays of the data
 print(iris.iloc[0])
 print("----------")
-print(variables[0], ":", species[0], ":", species_enc[0])
+print(variables[0], ":", species_[0], ":", species[0])
 #+end_src
 
 #+RESULTS:
@@ -615,7 +612,7 @@ print(variables[0], ":", species[0], ":", species_enc[0])
 
 #+begin_src jupyter-python
 # By default, pytorch operates on floats, not doubles
-X, Y = th.tensor(variables.astype('float32')), th.tensor(species_enc)
+X, Y = th.tensor(variables.astype('float32')), th.tensor(species)
 # A basic stochastic gradient descent optimizer
 n_epochs, minibatch_size = 5, 16
 optimizer = optim.SGD(net.parameters(), lr=0.1)
@@ -684,10 +681,16 @@ changing some of the values.
 
 Some exercises
 
-- Try to increase the number of nodes in the hidden layer of the network, and retraining
+- Try to increase the number of nodes in the hidden layer of the
+  network, and retraining
 - Try adding another hidden layer to the network and retraining
   - You'll need to add an =fc3= and you change the =fc2= output to
     more hidden nodes
+- The activation function we're using =sigmoid= is prone to getting
+  stuck (if all inputs are large or small, then it will output 0 or 1
+  always, and the partial will always be 0, so its impossible to
+  train). Try using an alternative activation function, like =relu=,
+  does it work better?
 - Try changing the optimizer. For example, try using =Adam=, does it
   help the network converge more quickly?
   - In this case though, there are very few datapoints...
@@ -995,6 +998,13 @@ print(f"Acc.: {correct/float(tot):.3f}")
 Exercises:
 - Compare the speed of the network on and off the GPU
   - Convolutional layers are the reason we need beefy GPUs for deep learning!
+- Modify the training loop to keep track of the average losses. Plot
+  loss vs epoch for testing and training, do they keep up with each
+  other?
+- Draw the confusion matrix for the testing set, like we did for the
+  irises. Are there particular combinations its misclassifying?
+- Find examples the network is misclassifying and see what they look
+  like. Do you think you would have classified them correctly?
 - Try adding more layers to the network, whats the best accuracy you can get?
 - With too deep a network you'll find it hard to stop from
   overtraining, try adding some regularization layers, such as
@@ -1008,6 +1018,14 @@ Exercises:
     much it speeds up training large networks
   - With these layers you need to put the network into training or
     evaluation mode. Use =net.train()=, and =net.eval()= respectively
+- Torchvision also comes with classic deep learning networks, like VGG
+  and ResNet. Search the documentation and setup one of these networks
+  to solve the MNIST classification problem. You might need to change
+  the final layer of the network in order to do this.
+- Similarly, it comes with a variety of classic datasets. Try building
+  a network to classify, for example, CIFAR10 (small color images in
+  the categories: airplane, automobile, bird, cat, deer, dog, frog,
+  horse, ship, truck)
 
 #+begin_src jupyter-python
 drop = nn.Dropout(0.5)
@@ -1120,6 +1138,10 @@ the discriminator, and trying to send the value of the discriminator
 toward 1 (by changing the *generator* weights, the discriminator
 weights are fixed during this update).
 
+We use =requires_grad= to turn on/off the caching of values, which can
+speed up the training (we should/could have done this in the training
+phase of the previous classification task also).
+
 We keep track of the average loss for the discriminator and generator
 updates separately and record them at the end of each epoch. This is
 particularly important here as GANs are prone to collapse: one of the
@@ -1161,7 +1183,8 @@ for epoch in range(25):
     ones = th.tensor([1.]*i.size(0)).view(-1,1).cuda()
     zeros = th.tensor([0.]*i.size(0)).view(-1,1).cuda()
     randn = lambda: th.randn(i.size(0), gen.input_size).cuda()
-    # update d
+    # update dis, try to distinguish real (from the MNIST dataset)
+    # from fake (from gen) images
     d_optim.zero_grad()
     gen.requires_grad=False
     dis.requires_grad=True
@@ -1173,7 +1196,8 @@ for epoch in range(25):
     dl += loss; dn += i.size(0)
     d_optim.step()
     
-    # update g
+    # update gen, try to fool the dis network by driving its output on
+    # fake images toward 1 (by only changing the gen network)
     g_optim.zero_grad()
     dis.requires_grad=False
     gen.requires_grad=True
@@ -1249,6 +1273,13 @@ Done
 #+end_example
 : <Figure size 1800x1800 with 0 Axes>
 :END:
+
+Images we save can be displayed in colab with code like this:
+#+begin_src jupyter-python
+from IPython.display import Image
+Image(filename='images/fc_004.png')
+#+end_src
+
 Example images over epochs:
 
 Epoch 0:
@@ -1259,12 +1290,19 @@ Epoch 2:
 [[file:images/fc_002.png]]
 Epoch 3:
 [[file:images/fc_003.png]]
-Epoch 4:
-[[file:images/fc_004.png]]
 Epoch 5:
 [[file:images/fc_005.png]]
+Epoch 10:
+[[file:images/fc_010.png]]
+Epoch 24:
+[[file:images/fc_024.png]]
 
 Exercises:
+- The training loop is sparsely instrumented in this case, so it can
+  take a while to see whats going on. This can be a problem if the
+  training collapses (i.e. it will waste lots of time). Try moving the
+  loss output inside the batch loop, and output every few hundred
+  batches
 - In this case, using batchnorm on the generator will greatly
   regularize and speed up the training.  What happens if you remove
   the normalization? [when I tried, I saw mode collapse]
@@ -1275,8 +1313,307 @@ Exercises:
 
 ** Iris Classification with a Simple NN
 
+#+begin_src jupyter-python
+import seaborn as sns
+import torch as th
+import torch.nn as nn
+import torch.optim as optim
+
+iris = sns.load_dataset("iris")
+
+plot = sns.pairplot(iris, hue="species")
+plot.savefig('iris.png')
+
+# A simple feedforward network in pytorch
+class MyNet(nn.Module):
+    def __init__(self):
+        super(MyNet, self).__init__()
+        self.fc1 = nn.Linear(4,128) # fc=fully-connected
+        self.fc2 = nn.Linear(128,3) # 3 possible outputs
+    def forward(self, x):
+        x = th.sigmoid(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+net = MyNet()
+variables = iris.values[:, :4]
+species_ = iris.values[:, 4]
+
+smap = {'setosa' : 0, 'versicolor' : 1, 'virginica' : 2}
+species = np.array(list(smap[s] for s in species_))
+X, Y = th.tensor(variables.astype('float32')), th.tensor(species)
+
+# A basic (uninstrumented) pytorch training loop
+n_epochs, minibatch_size = 15, 16
+optimizer = optim.SGD(net.parameters(), lr=0.01)
+loss_fn = th.nn.CrossEntropyLoss()
+optimizer.zero_grad()
+for _ in range(n_epochs):
+  for idx in range(0, len(X), minibatch_size):
+    optimizer.zero_grad()
+    prediction = net(X[idx:idx+minibatch_size])
+    loss = loss_fn(prediction, Y[idx:idx+minibatch_size])
+    loss.backward()
+    optimizer.step()
+
+prediction=net(X)
+_, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
+print(th.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
+
+confusion = th.zeros(3, 3)
+for i, j in zip(net(X).max(1)[1], Y): confusion[i,j] += 1
+plt.matshow(confusion)
+plt.colorbar()
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: tensor(0.6667)
+: <matplotlib.colorbar.Colorbar at 0x7fe7088a90d0>
+[[file:./.ob-jupyter/bfb6f27c16828341038471c5dedd7db31a5cd946.png]]
+[[file:./.ob-jupyter/27134e8fc299bddc6138e225190f0a9253d53c0c.png]]
+:END:
+
 ** MNIST Classification with a CNN
+
+Make sure you turn on the GPU in colab!
+
+#+begin_src jupyter-python
+import torch as th
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+
+train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
+test_ = torchvision.datasets.MNIST('/tmp', download=True, train=False, transform=torchvision.transforms.ToTensor())
+train = th.utils.data.DataLoader(train_, batch_size=64)
+test = th.utils.data.DataLoader(test_, batch_size=64)
+
+class ConvNet(nn.Module):
+    def __init__(self):
+        super(ConvNet, self).__init__()
+        self.c1 = nn.Conv2d(1, 5, 7) # 28x28 -> 22x22
+        self.c2 = nn.Conv2d(5, 10, 5) # 22x22 -> 18x18
+        self.c3 = nn.Conv2d(10, 5, 3) # 18x18 -> 16x16
+        self.fc1 = nn.Linear(16*16*5,100) # 5 channels of 16x16 images
+        self.fc2 = nn.Linear(100,10)
+    def forward(self, x):
+        x = th.relu(self.c1(x))
+        x = th.relu(self.c2(x))
+        x = th.relu(self.c3(x))
+        # convert the 5x16x16 image into a 1d array with 5*16*16
+        # elements, i.e. "flatten" it
+        x = x.reshape(x.shape[0],-1)
+        x = th.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+d = th.device('cuda')
+net = ConvNet()
+net.to(d)
+
+# slightly more featureful training loop
+optim = th.optim.Adam(net.parameters(), lr=0.002)
+lossf = th.nn.CrossEntropyLoss()
+for epoch in range(5):
+  tl,tn = 0.,0.
+  for ii, (i, o) in enumerate(train):
+    optim.zero_grad()
+    loss = lossf(net(i.to(d)), o.to(d))
+    loss.backward()
+    optim.step()
+    tl += loss.item()*i.size(0) # loss returns the *avg.* loss
+    tn += i.size(0)
+    if ii % 300 == 0:
+      print(f"epoch {epoch} batch {ii:03d}", end=' ')
+      print(f"train: {tl/tn:5f}", end=' ')
+      tl,tn = 0.,0.
+      for i, o in test:
+        loss = lossf(net(i.to(d)), o.to(d))
+        tl += loss.item()*i.size(0)
+        tn += i.size(0)
+      print(f"test: {tl/tn:5f}")
+      tl,tn = 0.,0.
+
+correct, tot = 0, 0
+for x, y in test:
+    x, y = x.to(d), y.to(d)
+    prediction = net(x)
+    _, prediction_y = th.max(prediction,1) # returns (the max value, position of the max value)
+    correct += th.sum(prediction_y==y)
+    tot += len(y)
+print(f"Acc.: {correct/float(tot):.3f}")
+#+end_src
 
 ** MNIST GAN
 
+#+begin_src jupyter-python
+import matplotlib.pyplot as plt
+import torch as th
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+import datetime
+import os
 
+train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
+train = th.utils.data.DataLoader(train_, batch_size=64)
+
+class Discr(nn.Module):
+    def __init__(self):
+        super(Discr, self).__init__()
+        self.c1 = nn.Conv2d(1, 16, 7) # 28x28 -> 22x22
+        self.c2 = nn.Conv2d(16, 64, 5) # 22x22 -> 18x18
+        self.c3 = nn.Conv2d(64, 8, 3) # 18x18 -> 16x16
+        self.fc1 = nn.Linear(16*16*8,100) # 8 channels of 16x16 images
+        self.fc2 = nn.Linear(100,1)
+        self.drop = nn.Dropout(0.5)
+    def forward(self, x):
+        x = th.relu(self.drop(self.c1(x)))
+        x = th.relu(self.drop(self.c2(x)))
+        x = th.relu(self.drop(self.c3(x)))
+        # convert the 5x16x16 image into a 1d array with 5*16*16
+        # elements, i.e. "flatten" it
+        x = x.reshape(x.shape[0],-1)
+        x = th.relu(self.fc1(x))
+        x = th.sigmoid(self.fc2(x))
+        return x
+
+class Gen(nn.Module):
+  def __init__(self, input_size=100):
+    super(Gen, self).__init__()
+    self.input_size = input_size
+    self.fc1 = nn.Linear(self.input_size, 16*16*8)
+    self.cc1 = nn.ConvTranspose2d(8,64,3) # 64x18x18
+    self.bn1 = nn.BatchNorm2d(64)
+    self.cc2 = nn.ConvTranspose2d(64,16,5) # 16x22x22
+    self.bn2 = nn.BatchNorm2d(16)
+    self.cc3 = nn.ConvTranspose2d(16,1,7) # 1x28x28
+  def forward(self, x):
+    x = th.relu(self.fc1(x))
+    x = x.view(-1,8,16,16)
+    x = th.relu(self.bn1(self.cc1(x)))
+    x = th.relu(self.bn2(self.cc2(x)))
+    x = th.sigmoid(self.cc3(x))
+    return x
+
+gen = Gen().cuda()
+dis = Discr().cuda()
+
+
+g_optim = th.optim.Adam(gen.parameters(), lr=2e-4)
+d_optim = th.optim.Adam(dis.parameters(), lr=2e-4)
+lossf = nn.BCELoss()
+
+gen.train(); dis.train()
+# keep the input latent vectors for images the same in each epoch
+noise = th.randn((25,gen.input_size)).cuda()
+gloss, dloss = [], []
+for epoch in range(25):
+  print(f"--- Epoch {epoch} {datetime.datetime.now().strftime('%H:%M:%S')}")
+  gen.eval()
+  im = gen(noise).view(-1,28,28)
+  plt.clf()
+  plt.gcf().set_size_inches(25, 25)
+  for i in range(25):
+    plt.subplot(5,5,i+1)
+    plt.imshow(im[i].detach().cpu(), cmap='gray')
+  os.system('mkdir -p images')
+  plt.savefig(f'images/fc_{epoch:03d}.png')
+  plt.clf()
+  gen.train()
+  gl, gn = 0., 0.
+  dl, dn = 0., 0.
+  for ii, (i, o) in enumerate(train):
+    i, o = i.cuda(), o.cuda()
+    ones = th.tensor([1.]*i.size(0)).view(-1,1).cuda()
+    zeros = th.tensor([0.]*i.size(0)).view(-1,1).cuda()
+    randn = lambda: th.randn(i.size(0), gen.input_size).cuda()
+    # update dis
+    d_optim.zero_grad()
+    gen.requires_grad=False
+    dis.requires_grad=True
+    loss = lossf(dis(i), ones)
+    loss.backward()
+    dl += loss; dn += i.size(0)
+    loss = lossf(dis(gen(randn())), zeros)
+    loss.backward()
+    dl += loss; dn += i.size(0)
+    d_optim.step()
+    
+    # update gen
+    g_optim.zero_grad()
+    dis.requires_grad=False
+    gen.requires_grad=True
+    loss = lossf(dis(gen(randn())), ones)
+    loss.backward()
+    gl += loss; gn += i.size(0)
+    loss = lossf(dis(gen(randn())), ones)
+    loss.backward()
+    gl += loss; gn += i.size(0)
+    g_optim.step()
+    
+  print(f"dis: {(dl/dn).item():.3f} gen: {(gl/gn).item():.3f}")
+  gloss.append((gl/gn).item())
+  dloss.append((dl/dn).item())
+
+print("Done")
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+#+begin_example
+--- Epoch 0 13:39:10
+dis: 0.006 gen: 0.034
+--- Epoch 1 13:39:25
+dis: 0.007 gen: 0.026
+--- Epoch 2 13:39:41
+dis: 0.007 gen: 0.023
+--- Epoch 3 13:39:57
+dis: 0.008 gen: 0.021
+--- Epoch 4 13:40:13
+dis: 0.008 gen: 0.022
+--- Epoch 5 13:40:29
+dis: 0.008 gen: 0.022
+--- Epoch 6 13:40:45
+dis: 0.007 gen: 0.023
+--- Epoch 7 13:41:01
+dis: 0.007 gen: 0.023
+--- Epoch 8 13:41:16
+dis: 0.007 gen: 0.023
+--- Epoch 9 13:41:32
+dis: 0.007 gen: 0.023
+--- Epoch 10 13:41:48
+dis: 0.007 gen: 0.023
+--- Epoch 11 13:42:03
+dis: 0.007 gen: 0.023
+--- Epoch 12 13:42:19
+dis: 0.007 gen: 0.023
+--- Epoch 13 13:42:35
+dis: 0.007 gen: 0.024
+--- Epoch 14 13:42:51
+dis: 0.007 gen: 0.024
+--- Epoch 15 13:43:06
+dis: 0.007 gen: 0.024
+--- Epoch 16 13:43:22
+dis: 0.007 gen: 0.025
+--- Epoch 17 13:43:37
+dis: 0.007 gen: 0.025
+--- Epoch 18 13:43:53
+dis: 0.007 gen: 0.026
+--- Epoch 19 13:44:09
+dis: 0.007 gen: 0.026
+--- Epoch 20 13:44:26
+dis: 0.006 gen: 0.027
+--- Epoch 21 13:44:41
+dis: 0.006 gen: 0.027
+--- Epoch 22 13:44:57
+dis: 0.006 gen: 0.028
+--- Epoch 23 13:45:13
+dis: 0.006 gen: 0.028
+--- Epoch 24 13:45:28
+dis: 0.006 gen: 0.028
+Done
+#+end_example
+: <Figure size 1800x1800 with 0 Axes>
+:END:
