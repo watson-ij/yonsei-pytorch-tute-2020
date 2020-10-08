@@ -56,9 +56,7 @@
 ** Slides
 
 - Slides available from (this will redirect to my github repo.):
-
-_[[https://git.io/yonsei2020]]_
-
+  _[[https://git.io/yonsei2020]]_
 - Other Resources:
   - Pytorch documentation: _[[https://pytorch.org/]]_
   - List of resources from tech republic:
@@ -70,7 +68,7 @@ _[[https://git.io/yonsei2020]]_
 
 - If you're already a deep learning master, not the talk for you!
 - Get up and running quickly with Deep Learning
-  - In particular, the goal is to build neural networks you can take home today!
+  - The goal is to build neural networks you can take home today!
 - Therefore, we'll use /PyTorch/ to get up and running quickly
 - Outline of the session:
   - Lecture introducing some of the theory
@@ -78,7 +76,8 @@ _[[https://git.io/yonsei2020]]_
     - Basic Usage of PyTorch (Iris)
     - Convolutional Neural Net in PyTorch (MNIST)
     - GANs (using MNIST)
-  - I'll try to cover as much as possible of machine learning and deep learning, this is too much!
+  - I'll try to cover as much as possible of machine learning and deep
+    learning, but there is too much!
 - For this lecture, I recommend using /google colaboratory/
   - Machine learning education and research tool setup by google, all
     the packages are installed, just need a google account to sign in
@@ -88,8 +87,6 @@ _[[https://git.io/yonsei2020]]_
   comfortable)
 
 * Introduction: Machine Learning, Deep Learning
-
-
 ** Introduction - Machine Learning
 
 - *Machine learning* refers to sets of algorithms (techniques) that
@@ -104,7 +101,7 @@ _[[https://git.io/yonsei2020]]_
   hadrons, and it will learn to distinguish them
   - More specifically, we will build a parameterized model which gives
     a "probability" for an input datapoint to be photon or hadron, and
-    the algorithms changes the parameters to better describe the
+    the algorithms changes the parameters to better classify the
     photons or hadron examples you feed it
 
 ** Introduction - Deep Learning
@@ -124,13 +121,12 @@ _[[https://git.io/yonsei2020]]_
 ** Introduction - Deep Learning Applications
 
 - Typical applications include:
-- Image classification: cat vs dog, or photon vs hadron
-- Image segmentation: draw a box around all the people in this image,
-  or e.g. all the galaxies in this image from the Hubble telescope
-- Voice recognition: "Hey Siri" vs all the other phrases you say
-  around a phone
-- Machine translation: this series of utterances in Korean correspond
-  to these in English
+  - Image classification: cat vs dog, or photon vs hadron
+  - Image segmentation: draw a box around all the people in this image,
+    or e.g. all the galaxies in this image from the Hubble telescope
+  - Voice recognition: "Hey Siri" vs all the other phrases you might say
+  - Machine translation: this series of utterances in Korean correspond
+    to these in English
 - Hopefully, you can see how some of these could be useful to us in
   science
 - Today, we'll mostly be considering image analysis, but the
@@ -139,9 +135,10 @@ _[[https://git.io/yonsei2020]]_
 * Neural Networks
 ** Machine Learning: Neural Network
 
-- Framework for Machine Learning: given a set of data, and set of
-  expected outputs (typically categories), build a system which learns
-  how to connect data to output
+- /Review/ -- *Framework for Machine Learning* given a set of data,
+  and set of expected outputs (typically categories, but could also be a
+  regression), build a system which learns how to connect data to
+  output
 - A *Neural Network* is one type: connect stacks of tensor operators
   with fixed linear and non-linear transformations
 - We'll start by building up a neural network classifier from the
@@ -177,8 +174,10 @@ _[[https://git.io/yonsei2020]]_
 - \(y_i = \sigma(\vec\beta \cdot \vec{x_i}) + \epsilon_i\), \(y_i\) = 0 if \(x_i\) from class 0, 1 if \(x_i\) from class 1
   - \(\vec\beta \cdot \vec{x_i} = \beta_0 + \beta_1 x_1 + \ldots \beta_k x_k\)
   - \(\sigma(x) = \frac{1}{1+e^{-x}}\) the logistic function
+  - \(\epsilon_i\) is the error of the classification
 - The machine-learning goal would be find the values of \beta which
-  best classifies the classes
+  best classifies the classes (= minimizes the sum of the
+  squares of the error)
 
 *** 
 
@@ -217,13 +216,13 @@ _[[https://git.io/yonsei2020]]_
 - Finding the best discriminant for our illustrative dataset shows
   that these two classes are fully separable
   - Find \beta which minimizes a *loss function* which gives a penalty
-    for misclassifying data: \(MSE = \frac{1}{m} \sum_i \left(f(x_i;\beta) -
-    y_i\right)^2 \) (the Mean-Squared Error loss),
+    for misclassifying data (with the Mean-Squared Error loss): \\
+    \(MSE = \frac{1}{m} \sum_i \left(f(x_i;\beta) - y_i\right)^2 \) \\
     we want to *minimize the loss* over parameters \beta
   - This is the usual goal in ML: setup a parameterized model and then
     define a function to minimize which gives the best parameters
 - The Logistic Regression will place the cut point between the data
-  and so all red go to 0, blue go to 1 after passing through the logistic function
+  and so all red go to 0, blue go to 1 after passing through the sigmoid
 
 \tiny From
 _[[https://medium.freecodecamp.org/an-illustrative-introduction-to-fishers-linear-discriminant-9484efee15ac]]_
@@ -239,8 +238,8 @@ _[[https://medium.freecodecamp.org/an-illustrative-introduction-to-fishers-linea
 \includegraphics<3>[width=.33\textwidth]{figures/OR_turnon.png}   
    #+end_export
 
-- Let's think about approximating some simple binary functions as a
-  basic classification task
+- Let's approximate some simple binary functions as a
+  basic task
 - OR and AND gates
   - OR is 0 (red) if both input are 0, 1 (blue) otherwise
   - AND is 1 if both inputs are 1, 0 otherwise
@@ -397,8 +396,9 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
 - Need to *train* the weight matrix $W$ and the bias vector $b$ and
   optimize a "loss" function that represents a distance from the target output
 
-
 ** Analogy: Steepest descent
+
+Question: How do we actually train these networks?
 
 ***                                                                   :BMCOL:
     :PROPERTIES:
@@ -441,10 +441,10 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
       \epsilon\), i.e. we're not reducing further, so we're close to
       the minimum
   - Return the final \(\mathbf{x}_n\)
-- \(\gamma_n\) can be different for each iteration, we'll find the
-  best \(\gamma_n\) by checking several possible values
+- \(\gamma_n\) can be different for each iteration, extensions to GD
+  keep track of how quickly parameters are changing to update \(\gamma\) also
 - \epsilon is the /tolerance/, how close to a minima do we need to be
-  before stopping (we could also check \(|\nabla f(\mathbf{x}_n)| < \epsilon\))
+  before stopping (again, there are various criteria we could choose here)
 
 ** Example function
 
@@ -452,9 +452,9 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
 #+ATTR_LATEX: :width .7\textwidth
 [[file:figures/GD_Path.png]]
 
+- Lines are contours of equal value
 - Shows how the algorithm picks out different paths depending on
   starting point
-- Lines are contours of equal value
 
 ** Training Neural Networks: Backpropagation
 
@@ -472,7 +472,7 @@ This still holds when replacing \(I_{m}\) with any compact subset of \(\mathbb {
 - For more on how backpropagation works: _[[http://neuralnetworksanddeeplearning.com/chap2.html]]_
 
 * Deep Learning
-** A Convolutional Network
+** Going Deep: A Convolutional Network
 
 #+LATEX: \vspace{-2mm} \centering
 #+ATTR_LATEX: :width .7\textwidth
@@ -593,7 +593,7 @@ https://kharshit.github.io/blog/2018/12/14/filters-in-convolutional-neural-netwo
 - The image shows that a 3-channel input needs filters with a 3x3x3
   block, and 2 filters produce a 2 channel output
 
-** Filters Over Several Input Layers
+** Several Layers of Filters in Succession
 
   #+latex: \vspace{-1mm} \centering
 #+attr_latex: :width .8\textwidth
