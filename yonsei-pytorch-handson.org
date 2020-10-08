@@ -95,10 +95,10 @@ Now, let's setup a new workspace
 - Demo
   - Basic jupyter usage
 
-#+LATEX: \tiny
-#+BEGIN_SRC jupyter-python
+
+#+begin_src jupyter-python :exports both
 !ls # execute external commands
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 : colab_instructions		yonsei-pytorch-handson.org
@@ -107,42 +107,42 @@ Now, let's setup a new workspace
 : README.org			yonsei-pytorch-lecture.tex
 : yonsei-pytorch-handson.ipynb
 
-#+BEGIN_SRC jupyter-python
+#+begin_src jupyter-python
 import os
  # help at your fingertips
 ?os
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python
+#+begin_src jupyter-python
 pi = 3.14159 # variables persists over cells
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python :exports both
+#+begin_src jupyter-python :exports both
 pi*2
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 : 6.28318
 
-#+BEGIN_SRC jupyter-python
+#+begin_src jupyter-python
 def area(radius):
     return pi*radius**2
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python :exports both
+#+begin_src jupyter-python :exports both
 area(1)
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 : 3.14159
 
-#+BEGIN_SRC jupyter-python :exports both
+#+begin_src jupyter-python :exports both
 # inline plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -151,7 +151,7 @@ x = np.linspace(-3.14, 3.14, 100)
 y = np.sin(x)
 plt.plot(x, y)
 plt.show()
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 [[file:./.ob-jupyter/9a9d70fbcad8c81a21afef4b1dc6336e2331925f.png]]
@@ -183,7 +183,7 @@ the notebook.
     :BEAMER_col: .5
     :END:
 #+LATEX: \tiny
-#+BEGIN_SRC jupyter-python
+#+begin_src jupyter-python
 import matplotlib
 # matplotlib.use("AGG")  # To batch graphics
 import matplotlib.pyplot as plt
@@ -195,7 +195,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import datetime
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 
@@ -241,10 +241,10 @@ seaborn pacakge, which also lets us create plots showing the
 correlations between the variables.
 
 #+LATEX: \footnotesize
-#+BEGIN_SRC jupyter-python :display plain :exports both
+#+begin_src jupyter-python :display plain :exports both
 iris = sns.load_dataset("iris")
 iris.head()
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 :    sepal_length  sepal_width  petal_length  petal_width species
@@ -262,10 +262,10 @@ separable by the petal length and width, but versicolor and virginica
 are a little tricky.
 
 #+LATEX: \scriptsize
-#+BEGIN_SRC jupyter-python :exports both
+#+begin_src jupyter-python :exports both
 plot = sns.pairplot(iris, hue="species")
 plot.savefig('iris.png')
-#+END_SRC
+#+end_src
 
 #+ATTR_LATEX: :width .5\textwidth
 #+RESULTS:
@@ -330,7 +330,7 @@ print(torch.linspace(1., 3., 3)) # or a helper function
 
 Putting it all together, we can build our first neural network:
 
-#+BEGIN_SRC jupyter-python :exports both
+#+begin_src jupyter-python :exports both
 class MyNet(nn.Module):
     def __init__(self):
         # setup with nn.Module's initializer
@@ -349,7 +349,7 @@ class MyNet(nn.Module):
 # Build an instance of the model
 net = MyNet()
 net
-#+END_SRC
+#+end_src
 
 #+RESULTS:
 : MyNet(
@@ -724,12 +724,10 @@ Some exercises
   - This helps gauge how well the training is doing to generalize on
     unseen data
   
-#+BEGIN_SRC jupyter-python
+#+begin_src jupyter-python
 train_ = torchvision.datasets.MNIST('/tmp', download=True, train=True, transform=torchvision.transforms.ToTensor())
 test_ = torchvision.datasets.MNIST('/tmp', download=True, train=False, transform=torchvision.transforms.ToTensor())
-#+END_SRC
-
-#+RESULTS:
+#+end_src
 
 Lets see what it looks like:
 
