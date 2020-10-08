@@ -121,7 +121,7 @@ pi = 3.14159 # variables persists over cells
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python
+#+BEGIN_SRC jupyter-python :exports both
 pi*2
 #+END_SRC
 
@@ -135,14 +135,14 @@ def area(radius):
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python
+#+BEGIN_SRC jupyter-python :exports both
 area(1)
 #+END_SRC
 
 #+RESULTS:
 : 3.14159
 
-#+BEGIN_SRC jupyter-python
+#+BEGIN_SRC jupyter-python :exports both
 # inline plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -241,7 +241,7 @@ seaborn pacakge, which also lets us create plots showing the
 correlations between the variables.
 
 #+LATEX: \footnotesize
-#+BEGIN_SRC jupyter-python :display plain
+#+BEGIN_SRC jupyter-python :display plain :exports both
 iris = sns.load_dataset("iris")
 iris.head()
 #+END_SRC
@@ -262,7 +262,7 @@ separable by the petal length and width, but versicolor and virginica
 are a little tricky.
 
 #+LATEX: \scriptsize
-#+BEGIN_SRC jupyter-python
+#+BEGIN_SRC jupyter-python :exports both
 plot = sns.pairplot(iris, hue="species")
 plot.savefig('iris.png')
 #+END_SRC
@@ -294,7 +294,7 @@ In order to classify the irises, we'll build a simple network in PyTorch.
 [[file:figures/nn-1a.png]]
 
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 arr = np.array([1.,2.,3.])
 print(torch.Tensor(arr)) # build from a numpy array
 print(torch.Tensor([1.,2.,3.])) # or a python array
@@ -407,7 +407,7 @@ net(input)
     if-clause choosing cuda if available or else CPU)
 - Similarly, we can put a cuda tensor back on the CPU with =Tensor.cpu()=
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 net = net.cuda() # put network on GPU 
 input = input.cuda() # and the input tensor
 net(input) # you should see the device is now displayed
@@ -439,7 +439,7 @@ there's only 2 classes to classify. Here, we also show a quicker way
 of setting up a simple network using =Sequential= (should be familiar
 if you know Keras).
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 # For simple networks just containing stacks of layers, one can use
 # the Sequential module instead, need explicit layers for the
 # activation in this case
@@ -460,7 +460,7 @@ network), and then applies the -log(p) function on the true values
 output [think of it like the -log of the networks probability for it
 to be the true value].
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 loss_fn = torch.nn.CrossEntropyLoss()
 # the net is on the GPU, here we create 3 inputs, each filled with zeros
 out = net(torch.zeros(3,4).cuda())
@@ -478,7 +478,7 @@ Just to be explicit of what CrossEntropyLoss means.
 - Cross-entropy loss is the -log(p) where p is the output of the softmax for the (known) true value
   - We are in the fully-labelled paradigm for training
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 out = net(torch.zeros(1,4).cuda())
 loss = loss_fn(out, torch.tensor([0]).cuda())
 # use item() to extract a single value from a tensor and return as a python float
@@ -560,7 +560,7 @@ print(list(net.fc1.parameters())[0].grad[0,0])
   strings: "setosa", "virginica", "versicolor") to the expected format
   - Plants which are really setosa = 0, versicolor = 1, virginica = 2
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 variables = iris.values[:, :4]
 species_ = iris.values[:, 4]
 
@@ -614,7 +614,7 @@ print(variables[0], ":", species_[0], ":", species[0])
 - =n_epochs= is the number of times through the complete dataset you will train for
   - The more you train, the better the fit, but you need to be careful of overfitting
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 # By default, pytorch operates on floats, not doubles
 X, Y = torch.tensor(variables.astype('float32')).cuda(), torch.tensor(species).cuda()
 # A basic stochastic gradient descent optimizer
@@ -641,7 +641,7 @@ print("Finished training!")
 Now lets check the output of the trained network on some example
 inputs.
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 for x, y in zip(torch.softmax(net(X[:5]),1), Y[:5]): print(x,y.item())
 #+end_src
 
@@ -654,7 +654,7 @@ for x, y in zip(torch.softmax(net(X[:5]),1), Y[:5]): print(x,y.item())
 
 Looking good. Lets check the accuracy of the network
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 prediction=net(X)
 _, prediction_y = torch.max(prediction,1) # returns (the max value, position of the max value)
 print(torch.sum(prediction_y==Y) / float(len(Y))) # sum the number we got correct
@@ -669,7 +669,7 @@ probably get a different value).
 
 Lets make a confusion matrix to find out where the network is having troubles
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 confusion = torch.zeros(3, 3)
 for i, j in zip(net(X).max(1)[1], Y): confusion[i,j] += 1
 plt.matshow(confusion)
@@ -807,7 +807,7 @@ to 255, and the output is a 60000 element tensor encoding the true
 label in exactly the format needed for CrossEntropyLoss (and
 corresponding to the real digit value). Lets view some images:
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 for i in range(8):
   plt.subplot(2,4,i+1)
   plt.imshow(train_.data[i], cmap='gray')
@@ -832,7 +832,7 @@ test = torch.utils.data.DataLoader(test_, batch_size=64)
 
 It makes it easier to do the training loop.
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 for x, y in train:
     print(x.shape, y.shape)
     break
@@ -853,7 +853,7 @@ Convolutional filters in pytorch are accessed with
 can be a scalar, in which case the filter is square, or you can pass a
 2-tuple to specify the width and height.
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 conv = nn.Conv2d(1, 5, 7)
 conv(x).shape
 #+end_src
@@ -873,7 +873,7 @@ instead of sigmoid here. relu(x) = 0 for negative x and relu(x) = x
 for postive x, it tends to be better for network, since it is harder
 to saturate, and shut a node down.
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
@@ -916,7 +916,7 @@ net(x).shape
     parameters and the data, so can't put the whole dataset on the GPU
     this time (unless google gives you an A100 or something...)
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 d = torch.device('cuda')
 net = ConvNet()
 net.to(d)
@@ -976,7 +976,7 @@ probability of 0.10 (10 categories, so this is equivalent to
 completely random) at the beginning, and giving the correct item an
 output of 0.95 at the end of training.
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 np.exp(-2.3), np.exp(-0.05)
 #+end_src
 
@@ -987,7 +987,7 @@ Lets check the accuracy on the test set. In this case, we won't be
 able to compute all the predictions in one pass (we would need to fit
 the whole test set on the GPU!).
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 correct, tot = 0, 0
 for x, y in test:
     x, y = x.to(d), y.to(d)
@@ -1033,7 +1033,7 @@ Exercises:
   the categories: airplane, automobile, bird, cat, deer, dog, frog,
   horse, ship, truck)
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 drop = nn.Dropout(0.5)
 print(torch.ones(5))
 print(drop(torch.ones(5)))
@@ -1059,7 +1059,7 @@ train = torch.utils.data.DataLoader(train_, batch_size=32)
 
 #+RESULTS:
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 class Discr(nn.Module):
     def __init__(self):
         super(Discr, self).__init__()
@@ -1095,7 +1095,7 @@ convolving, that is, we take a image and pass it to the next layer
 *adding* features based on the input, rather than searching for
 them. We can use a =ConvTranspose2d= layer to do this
 
-#+begin_src jupyter-python
+#+begin_src jupyter-python :exports both
 class Gen(nn.Module):
   def __init__(self, input_size=100):
     super(Gen, self).__init__()
